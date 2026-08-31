@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .nav-item { cursor: pointer; transition: all 0.2s; }
+    .nav-item.active { background-color: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; font-weight: 600; }
+    .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
+    .tab-inactive { color: #6b7280; }
+    .img-card { transition: transform 0.2s; }
+    .drag-card { cursor: grab; }
+    .drag-card:active { cursor: grabbing; }
+    #carousel-zone { min-height: 150px; }
+    
+    /* Ocultar scrollbars visualmente pero permitir scroll */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 h-screen flex overflow-hidden">
+
+  <!-- LOADER GLOBAL -->
+  <div id="loader" class="fixed inset-0 bg-white/90 z-[100] flex flex-col items-center justify-center">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+    <p class="text-gray-600 font-medium">Cargando base de datos...</p>
+  </div>
+
+  <!-- SIDEBAR (NAV) -->
+  <aside class="w-64 bg-white border-r shadow-sm flex flex-col shrink-0 z-20">
+    <div class="p-6 border-b">
+      <h1 class="text-xl font-bold text-gray-900 flex items-center">
+        <i class="fa-brands fa-instagram text-pink-600 mr-2 text-2xl"></i> MVP Panel
+      </h1>
+    </div>
+    <nav class="flex-1 py-4 flex flex-col gap-2">
+      <div onclick="cambiarVista('productos')" id="nav-productos" class="nav-item active px-6 py-3 text-gray-600 hover:bg-gray-50 flex items-center">
+        <i class="fa-solid fa-box-open w-6"></i> Inventario
+      </div>
+      <div onclick="cambiarVista('manager')" id="nav-manager" class="nav-item px-6 py-3 text-gray-600 hover:bg-gray-50 flex items-center">
+        <i class="fa-solid fa-layer-group w-6"></i> Content Manager
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 flex flex-col relative w-full h-full overflow-hidden">
+    
+    <!-- VISTA 1: GESTIÓN DE PRODUCTOS -->
+    <section id="vista-productos" class="w-full h-full flex flex-col bg-gray-50">
+      <div class="p-6 bg-white border-b flex justify-between items-center shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-800">Gestión de Productos</h2>
+        <button onclick="crearProductoPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-sm text-sm font-medium">
+          <i class="fa-solid fa-plus mr-1"></i> Nuevo Producto
+        </button>
+      </div>
+      <div class="p-6 flex-1 overflow-auto">
+        <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-productos" class="bg-white divide-y divide-gray-200">
+              <!-- Renderizado dinámico -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA 2: CONTENT MANAGER (Diseñador) -->
+    <section id="vista-manager" class="w-full h-full hidden flex-col bg-gray-50">
+      <header class="bg-white shadow-sm border-b px-6 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4">
+          <span class="font-semibold text-gray-700">Producto activo:</span>
+          <select id="select-producto" onchange="seleccionarProductoManager()" class="w-64 pl-3 pr-8 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-blue-500">
+            <option value="">Selecciona...</option>
+          </select>
+        </div>
+      </header>
+
+      <div class="flex-1 flex overflow-hidden">
+        <!-- BIBLIOTECA (Manager) -->
+        <div class="w-1/2 bg-white border-r flex flex-col h-full">
+          <div class="flex border-b px-4 mt-2 gap-6 overflow-x-auto no-scrollbar" id="tabs-container"></div>
+          <div class="p-4 overflow-y-auto flex-1 bg-gray-50/50">
+            <div id="library-grid" class="grid grid-cols-3 xl:grid-cols-4 gap-3">
+              <div class="col-span-full text-center text-gray-400 mt-10">Selecciona un producto arriba.</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- CARRUSEL (Manager) -->
+        <div class="w-1/2 bg-gray-100 flex flex-col h-full">
+          <div class="p-6 flex-1 overflow-y-auto">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div class="bg-gray-50 border-b px-4 py-3 flex justify-between items-center">
+                <h3 class="font-medium text-gray-700 text-sm">Arrastra fotos aquí</h3>
+                <span id="counter" class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full font-bold">0 fotos</span>
+              </div>
+              <div id="carousel-zone" class="p-4 flex gap-4 overflow-x-auto items-center bg-gray-50 min-h-[220px]">
+                 <div id="empty-carousel-msg" class="w-full text-center text-gray-400 text-sm italic absolute left-0 right-0 pointer-events-none">Zona de edición</div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white border-t p-4 flex justify-end gap-3 shadow-sm">
+            <button onclick="limpiarCarrusel()" class="px-4 py-2 border rounded text-gray-700 text-sm hover:bg-gray-50">Limpiar</button>
+            <button id="btn-guardar" onclick="guardarPost()" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded shadow-sm font-medium text-sm">
+              <i class="fa-solid fa-paper-plane mr-2"></i> Enviar a Make
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: GALERÍA DEL PRODUCTO -->
+  <div id="modal-galeria" class="fixed inset-0 bg-black/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl h-[80vh] flex flex-col overflow-hidden relative">
+      <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
+        <div>
+          <h3 class="text-lg font-bold text-gray-800" id="modal-titulo">Galería: SKU</h3>
+          <p class="text-xs text-gray-500">Administra las imágenes de este producto.</p>
+        </div>
+        <button onclick="cerrarModalGaleria()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      
+      <div class="p-4 bg-white flex gap-4 border-b shrink-0 items-center">
+         <select id="modal-select-cat" class="border border-gray-300 rounded px-3 py-1.5 text-sm w-48">
+           <option value="PROD">Categoría: PROD</option>
+         </select>
+         <button id="btn-cloudinary" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded shadow-sm text-sm font-medium">
+           <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Subir Foto(s)
+         </button>
+      </div>
+
+      <div class="p-6 flex-1 overflow-y-auto bg-gray-100">
+        <div id="modal-grid-fotos" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-4">
+          <!-- Fotos del modal -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ESTADO GLOBAL
+    let state = { 
+      productos: [], categorias: [], medios: [], 
+      productoActivoManager: null, categoriaActivaManager: null,
+      productoActivoModal: null // Para el modal de fotos
+    };
+    let sortableLibrary, sortableCarousel;
+    let cloudWidget;
+
+    // 1. INICIALIZACIÓN
+    window.onload = () => {
+      google.script.run.withSuccessHandler(initApp).withFailureHandler(err => alert("Error al cargar: " + err)).getInitialData();
+    };
+
+    function initApp(data) {
+      state = {...state, ...data};
+      if (state.categorias.length > 0) state.categoriaActivaManager = state.categorias[0].id;
+      
+      renderTablaProductos();
+      actualizarSelectManager();
+      renderizarTabsManager();
+      poblarSelectCategoriasModal();
+      initSortable();
+      initCloudinary();
+      
+      document.getElementById('loader').classList.add('hidden');
+    }
+
+    // 2. NAVEGACIÓN SPA
+    function cambiarVista(vista) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.getElementById('nav-' + vista).classList.add('active');
+      
+      if(vista === 'productos') {
+        document.getElementById('vista-manager').classList.add('hidden');
+        document.getElementById('vista-productos').classList.remove('hidden');
+        document.getElementById('vista-productos').classList.add('flex');
+      } else {
+        document.getElementById('vista-productos').classList.add('hidden');
+        document.getElementById('vista-productos').classList.remove('flex');
+        document.getElementById('vista-manager').classList.remove('hidden');
+        document.getElementById('vista-manager').classList.add('flex');
+      }
+    }
+
+    // 3. LOGICA VISTA: PRODUCTOS (CRUD)
+    function renderTablaProductos() {
+      const tbody = document.getElementById('tabla-productos');
+      tbody.innerHTML = '';
+      state.productos.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${p.sku}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.nombre}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.stock}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <button onclick="abrirModalGaleria('${p.sku}')" class="text-blue-600 hover:text-blue-900 mr-3" title="Galería"><i class="fa-regular fa-image text-lg"></i></button>
+            <button onclick="editarProductoPrompt('${p.sku}')" class="text-amber-600 hover:text-amber-900 mr-3" title="Editar"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="eliminarProductoFront('${p.sku}')" class="text-red-600 hover:text-red-900" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function crearProductoPrompt() {
+      const sku = prompt("Ingresa el SKU:"); if(!sku) return;
+      const nombre = prompt("Ingresa el Nombre:"); if(!nombre) return;
+      const stock = prompt("Ingresa el Stock inicial:", "0");
+      
+      document.getElementById('loader').classList.remove('hidden');
+      google.script.run.withSuccessHandler(nuevoProd => {
+        state.productos.push(nuevoProd);
+        renderTablaProductos(); actualizarSelectManager();
+        document.getElementById('loader').classList.add('hidden');
+      }).crearProducto(sku, nombre, stock || 0);
+    }
+
+    function editarProductoPrompt(sku) {
+      const prod = state.productos.find(p => p.sku === sku);
+      const nuevoNombre = prompt("Modificar Nombre:", prod.nombre); if(nuevoNombre === null) return;
+      const nuevoStock = prompt("Modificar Stock:", prod.stock); if(nuevoStock === null) return;
+
+      document.getElementById('loader').classList.remove('hidden');
+      google.script.run.withSuccessHandler(res => {
+        prod.nombre = res.nombre; prod.stock = res.stock;
+        renderTablaProductos(); actualizarSelectManager();
+        document.getElementById('loader').classList.add('hidden');
+      }).actualizarProducto(sku, nuevoNombre, nuevoStock);
+    }
+
+    function eliminarProductoFront(sku) {
+      if(!confirm(`¿Estás seguro de eliminar el SKU ${sku}?`)) return;
+      document.getElementById('loader').classList.remove('hidden');
+      google.script.run.withSuccessHandler(skuEliminado => {
+        state.productos = state.productos.filter(p => p.sku !== skuEliminado);
+        renderTablaProductos(); actualizarSelectManager();
+        if(state.productoActivoManager === skuEliminado) { state.productoActivoManager = null; renderizarBibliotecaManager(); }
+        document.getElementById('loader').classList.add('hidden');
+      }).eliminarProducto(sku);
+    }
+
+    // 4. LOGICA MODAL GALERÍA Y CLOUDINARY
+    function poblarSelectCategoriasModal() {
+      const sel = document.getElementById('modal-select-cat');
+      sel.innerHTML = '';
+      state.categorias.forEach(c => sel.add(new Option(c.nombre, c.id)));
+    }
+
+    function abrirModalGaleria(sku) {
+      state.productoActivoModal = sku;
+      document.getElementById('modal-titulo').textContent = `Galería: ${sku}`;
+      renderizarFotosModal();
+      document.getElementById('modal-galeria').classList.remove('hidden');
+    }
+
+    function cerrarModalGaleria() {
+      document.getElementById('modal-galeria').classList.add('hidden');
+      state.productoActivoModal = null;
+      renderizarBibliotecaManager(); // Refresca por si modificaste fotos del producto activo en manager
+    }
+
+    function renderizarFotosModal() {
+      const grid = document.getElementById('modal-grid-fotos');
+      grid.innerHTML = '';
+      const fotos = state.medios.filter(m => m.sku === state.productoActivoModal);
+      
+      if(fotos.length === 0) {
+        grid.innerHTML = '<div class="col-span-full text-center text-gray-500 mt-10">No hay fotos. Sube una.</div>';
+        return;
+      }
+      
+      fotos.forEach(foto => {
+        const div = document.createElement('div');
+        div.className = 'bg-white rounded border shadow-sm p-1 w-full aspect-square relative group';
+        div.innerHTML = `
+          <img src="${foto.url}" class="w-full h-full object-contain">
+          <span class="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1 rounded">${foto.categoria}</span>
+          <button onclick="eliminarMedioFront('${foto.id}')" class="absolute inset-0 bg-red-600/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded">
+            <i class="fa-solid fa-trash text-2xl"></i>
+          </button>
+        `;
+        grid.appendChild(div);
+      });
+    }
+
+    function initCloudinary() {
+      cloudWidget = cloudinary.createUploadWidget({
+        cloudName: 'drf83zhw', uploadPreset: 'app_instagram', sources: ['local', 'url'], multiple: true
+      }, (error, result) => { 
+        if (!error && result && result.event === "success") {
+          const catActiva = document.getElementById('modal-select-cat').value;
+          google.script.run.withSuccessHandler(nuevoMedio => {
+            state.medios.push(nuevoMedio);
+            renderizarFotosModal(); // Refresca en vivo
+          }).guardarNuevoMedio(result.info.secure_url, state.productoActivoModal, catActiva);
+        }
+      });
+      document.getElementById("btn-cloudinary").addEventListener("click", () => cloudWidget.open(), false);
+    }
+
+    function eliminarMedioFront(idMedio) {
+      if(!confirm("¿Borrar esta imagen?")) return;
+      google.script.run.withSuccessHandler(idBorrado => {
+        state.medios = state.medios.filter(m => m.id !== idBorrado);
+        renderizarFotosModal();
+      }).eliminarMedio(idMedio);
+    }
+
+    // 5. LOGICA VISTA: CONTENT MANAGER
+    function actualizarSelectManager() {
+      const select = document.getElementById('select-producto');
+      select.innerHTML = '<option value="">-- Selecciona un producto --</option>';
+      state.productos.forEach(p => select.add(new Option(`${p.sku} - ${p.nombre}`, p.sku)));
+      if(state.productoActivoManager) select.value = state.productoActivoManager;
+    }
+
+    function seleccionarProductoManager() {
+      state.productoActivoManager = document.getElementById('select-producto').value;
+      limpiarCarrusel();
+      renderizarBibliotecaManager();
+    }
+
+    function renderizarTabsManager() {
+      const container = document.getElementById('tabs-container');
+      container.innerHTML = '';
+      state.categorias.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.textContent = cat.nombre;
+        btn.onclick = () => { state.categoriaActivaManager = cat.id; renderizarTabsManager(); renderizarBibliotecaManager(); };
+        btn.className = cat.id === state.categoriaActivaManager ? 'pb-2 px-1 tab-active' : 'pb-2 px-1 tab-inactive';
+        container.appendChild(btn);
+      });
+    }
+
+    function renderizarBibliotecaManager() {
+      const grid = document.getElementById('library-grid');
+      grid.innerHTML = '';
+      if (!state.productoActivoManager) {
+        grid.innerHTML = '<div class="col-span-full text-center text-gray-400 mt-10">Selecciona un producto.</div>';
+        return;
+      }
+
+      const fotos = state.medios.filter(m => m.sku === state.productoActivoManager && m.categoria === state.categoriaActivaManager);
+      if (fotos.length === 0) {
+        grid.innerHTML = '<div class="col-span-full text-center text-gray-400 text-sm mt-10">No hay fotos en esta pestaña.</div>';
+        return;
+      }
+      
+      fotos.forEach(foto => {
+        const div = document.createElement('div');
+        div.className = 'img-card drag-card bg-white rounded-lg border p-1 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 flex items-center justify-center relative';
+        div.setAttribute('data-url', foto.url);
+        div.innerHTML = `<img src="${foto.url}" class="max-w-full max-h-full object-contain pointer-events-none">`;
+        div.ondblclick = function() { if(this.parentElement.id === 'carousel-zone') { this.remove(); actualizarContador(); } };
+        grid.appendChild(div);
+      });
+    }
+
+    function initSortable() {
+      sortableLibrary = new Sortable(document.getElementById('library-grid'), { group: { name: 'shared', pull: 'clone', put: false }, animation: 150, sort: false });
+      sortableCarousel = new Sortable(document.getElementById('carousel-zone'), { group: { name: 'shared', pull: false, put: true }, animation: 150, onAdd: actualizarContador, onUpdate: actualizarContador });
+    }
+
+    function actualizarContador() {
+      const items = document.getElementById('carousel-zone').querySelectorAll('.img-card');
+      document.getElementById('counter').textContent = `${items.length} fotos`;
+      document.getElementById('empty-carousel-msg').style.display = items.length > 0 ? 'none' : 'block';
+    }
+
+    function limpiarCarrusel() {
+      document.getElementById('carousel-zone').querySelectorAll('.img-card').forEach(el => el.remove());
+      actualizarContador();
+    }
+
+    function guardarPost() {
+      const items = document.getElementById('carousel-zone').querySelectorAll('.img-card');
+      if (items.length === 0) return alert("Agrega fotos al diseñador.");
+
+      const btn = document.getElementById('btn-guardar');
+      btn.disabled = true; btn.innerHTML = 'Enviando...';
+
+      const payload = { sku: state.productoActivoManager, urls: Array.from(items).map(i => i.getAttribute('data-url')) };
+
+      google.script.run.withSuccessHandler(res => {
+        alert(res); limpiarCarrusel();
+        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Enviar a Make';
+      }).enviarAColaPublicacion(payload);
+    }
+  </script>
+</body>
+</html>
