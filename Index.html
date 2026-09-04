@@ -8,114 +8,178 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     .nav-item { cursor: pointer; transition: all 0.2s; }
-    .nav-item.active { background-color: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; font-weight: 600; }
-    .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
+    .nav-item.active { background-color: #eff6ff; color: #3b82f6; font-weight: 600; border-left: 4px solid #3b82f6; }
+    .nav-item:not(.active) { border-left: 4px solid transparent; }
+    .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; font-weight: bold; }
     .tab-inactive { color: #6b7280; }
     .img-card { transition: transform 0.2s; }
     .drag-card { cursor: grab; }
     .drag-card:active { cursor: grabbing; }
     #carousel-zone { min-height: 150px; }
-    
-    /* Ocultar scrollbars visualmente pero permitir scroll */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { to { opacity: 0; } }
+    .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
+    .toast-exit { animation: fadeOut 0.3s ease-out forwards; }
   </style>
 </head>
-<body class="bg-gray-100 text-gray-800 h-screen flex overflow-hidden">
+<body class="bg-gray-50 text-gray-800 h-screen flex overflow-hidden font-sans">
 
-  <!-- LOADER GLOBAL -->
+  <!-- CONTENEDOR TOASTS -->
+  <div id="toast-container" class="fixed top-5 right-5 z-[200] flex flex-col gap-3"></div>
+
+  <!-- LOADER -->
   <div id="loader" class="fixed inset-0 bg-white/90 z-[100] flex flex-col items-center justify-center">
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-    <p class="text-gray-600 font-medium">Cargando base de datos...</p>
+    <p class="text-gray-600 font-medium text-sm tracking-wide">Sincronizando Workspace...</p>
   </div>
 
-  <!-- SIDEBAR (NAV) -->
+  <!-- SIDEBAR -->
   <aside class="w-64 bg-white border-r shadow-sm flex flex-col shrink-0 z-20">
-    <div class="p-6 border-b">
-      <h1 class="text-xl font-bold text-gray-900 flex items-center">
-        <i class="fa-brands fa-instagram text-pink-600 mr-2 text-2xl"></i> MVP Panel
-      </h1>
-    </div>
-    <nav class="flex-1 py-4 flex flex-col gap-2">
-      <div onclick="cambiarVista('productos')" id="nav-productos" class="nav-item active px-6 py-3 text-gray-600 hover:bg-gray-50 flex items-center">
-        <i class="fa-solid fa-box-open w-6"></i> Inventario
+    <div class="p-6 border-b flex items-center gap-3">
+      <div class="bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center shadow-sm">
+        <i class="fa-solid fa-layer-group text-sm"></i>
       </div>
-      <div onclick="cambiarVista('manager')" id="nav-manager" class="nav-item px-6 py-3 text-gray-600 hover:bg-gray-50 flex items-center">
-        <i class="fa-solid fa-layer-group w-6"></i> Content Manager
+      <h1 class="text-lg font-bold text-gray-900 tracking-tight">Auto Manager</h1>
+    </div>
+    <nav class="flex-1 py-4 flex flex-col gap-1">
+      <div onclick="cambiarVista('productos')" id="nav-productos" class="nav-item active px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3">
+        <i class="fa-solid fa-box-open w-5 text-center"></i> Inventario
+      </div>
+      <div onclick="cambiarVista('manager')" id="nav-manager" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3">
+        <i class="fa-solid fa-wand-magic-sparkles w-5 text-center"></i> Diseñador de Posts
+      </div>
+      <div onclick="cambiarVista('cola')" id="nav-cola" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3">
+        <i class="fa-regular fa-paper-plane w-5 text-center"></i> Cola de Envíos
+      </div>
+      <div onclick="cambiarVista('config')" id="nav-config" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3">
+        <i class="fa-solid fa-gear w-5 text-center"></i> Configuración
       </div>
     </nav>
   </aside>
 
   <!-- MAIN CONTENT -->
-  <main class="flex-1 flex flex-col relative w-full h-full overflow-hidden">
-    
-    <!-- VISTA 1: GESTIÓN DE PRODUCTOS -->
-    <section id="vista-productos" class="w-full h-full flex flex-col bg-gray-50">
-      <div class="p-6 bg-white border-b flex justify-between items-center shadow-sm">
-        <h2 class="text-lg font-semibold text-gray-800">Gestión de Productos</h2>
-        <button onclick="crearProductoPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-sm text-sm font-medium">
+  <main class="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-gray-50">
+    <header class="bg-white px-6 py-4 border-b text-sm text-gray-500 shrink-0">
+      Workspace <i class="fa-solid fa-chevron-right text-[10px] mx-2"></i> <span id="header-title" class="font-semibold text-gray-800">Gestión de productos</span>
+    </header>
+
+    <!-- VISTA 1: INVENTARIO -->
+    <section id="vista-productos" class="w-full h-full flex flex-col overflow-hidden">
+      <div class="p-6 flex justify-between items-center shrink-0">
+        <div class="relative w-64">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
+          <input type="text" id="buscador-productos" onkeyup="filtrarTabla('tabla-productos', this.value)" placeholder="Buscar producto..." class="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-md text-sm focus:ring-blue-500 shadow-sm">
+        </div>
+        <button onclick="abrirModalNuevoProducto()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors">
           <i class="fa-solid fa-plus mr-1"></i> Nuevo Producto
         </button>
       </div>
-      <div class="p-6 flex-1 overflow-auto">
-        <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+      <div class="px-6 pb-6 flex-1 overflow-auto">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-100">
+            <thead class="bg-gray-50/50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">SKU</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Nombre</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
+                  Stock 
+                  <i class="fa-solid fa-circle-info text-gray-400 hover:text-blue-500 cursor-help" title="La cantidad de stock influye en el tipo de pie de foto que se quiera expresar en la publicación final."></i>
+                </th>
+                <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase">Acciones</th>
               </tr>
             </thead>
-            <tbody id="tabla-productos" class="bg-white divide-y divide-gray-200">
-              <!-- Renderizado dinámico -->
-            </tbody>
+            <tbody id="tabla-productos" class="bg-white divide-y divide-gray-100"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- VISTA 2: CONTENT MANAGER (Diseñador) -->
-    <section id="vista-manager" class="w-full h-full hidden flex-col bg-gray-50">
-      <header class="bg-white shadow-sm border-b px-6 py-4 flex items-center justify-between shrink-0">
-        <div class="flex items-center gap-4">
-          <span class="font-semibold text-gray-700">Producto activo:</span>
-          <select id="select-producto" onchange="seleccionarProductoManager()" class="w-64 pl-3 pr-8 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-blue-500">
-            <option value="">Selecciona...</option>
-          </select>
+    <!-- VISTA 2: CONTENT MANAGER -->
+    <section id="vista-manager" class="w-full h-full hidden flex-col">
+      <div class="p-4 bg-white border-b flex items-center gap-4 shrink-0 shadow-sm">
+        <span class="font-semibold text-gray-800 text-sm">Producto:</span>
+        <div class="relative w-80">
+          <input type="text" list="lista-productos" id="input-producto" onchange="seleccionarProductoManager()" placeholder="Tipea para buscar SKU o Nombre..." class="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:ring-blue-500 focus:bg-white shadow-sm">
+          <datalist id="lista-productos"></datalist>
+          <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-gray-400 text-xs pointer-events-none"></i>
         </div>
-      </header>
+      </div>
 
       <div class="flex-1 flex overflow-hidden">
-        <!-- BIBLIOTECA (Manager) -->
-        <div class="w-1/2 bg-white border-r flex flex-col h-full">
+        <div class="w-1/2 bg-white flex flex-col h-full border-r">
           <div class="flex border-b px-4 mt-2 gap-6 overflow-x-auto no-scrollbar" id="tabs-container"></div>
-          <div class="p-4 overflow-y-auto flex-1 bg-gray-50/50">
-            <div id="library-grid" class="grid grid-cols-3 xl:grid-cols-4 gap-3">
-              <div class="col-span-full text-center text-gray-400 mt-10">Selecciona un producto arriba.</div>
+          <div class="p-6 overflow-y-auto flex-1">
+            <div id="library-grid" class="grid grid-cols-3 xl:grid-cols-4 gap-4">
+              <div class="col-span-full text-center text-gray-400 mt-10 text-sm">Selecciona un producto arriba.</div>
             </div>
           </div>
         </div>
         
-        <!-- CARRUSEL (Manager) -->
-        <div class="w-1/2 bg-gray-100 flex flex-col h-full">
+        <div class="w-1/2 bg-gray-50 flex flex-col h-full">
           <div class="p-6 flex-1 overflow-y-auto">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div class="bg-gray-50 border-b px-4 py-3 flex justify-between items-center">
-                <h3 class="font-medium text-gray-700 text-sm">Arrastra fotos aquí</h3>
-                <span id="counter" class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full font-bold">0 fotos</span>
+              <div class="bg-white border-b px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-gray-800 text-sm">Arrastra tus medios aquí</h3>
+                <span id="counter" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold">0 items</span>
               </div>
-              <div id="carousel-zone" class="p-4 flex gap-4 overflow-x-auto items-center bg-gray-50 min-h-[220px]">
-                 <div id="empty-carousel-msg" class="w-full text-center text-gray-400 text-sm italic absolute left-0 right-0 pointer-events-none">Zona de edición</div>
+              <div id="carousel-zone" class="p-5 flex gap-4 overflow-x-auto items-center min-h-[220px] bg-gray-50/50 relative">
+                 <div id="empty-carousel-msg" class="w-full text-center text-gray-400 text-xs font-medium tracking-widest uppercase absolute left-0 right-0 pointer-events-none">Zona de edición</div>
               </div>
             </div>
           </div>
-          <div class="bg-white border-t p-4 flex justify-end gap-3 shadow-sm">
-            <button onclick="limpiarCarrusel()" class="px-4 py-2 border rounded text-gray-700 text-sm hover:bg-gray-50">Limpiar</button>
-            <button id="btn-guardar" onclick="guardarPost()" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded shadow-sm font-medium text-sm">
-              <i class="fa-solid fa-paper-plane mr-2"></i> Enviar a Make
+          <div class="bg-white border-t p-4 flex justify-between items-center shadow-sm">
+            <button onclick="limpiarCarrusel()" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md shadow-sm font-medium text-sm transition-colors">Limpiar</button>
+            <button id="btn-guardar" onclick="guardarPost()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm font-medium text-sm transition-colors flex items-center gap-2">
+              <i class="fa-solid fa-paper-plane"></i> Enviar a Make
             </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA 3: COLA DE ENVÍOS (VISUALIZACIÓN DE FOTOS) -->
+    <section id="vista-cola" class="w-full h-full hidden flex-col overflow-hidden">
+      <div class="p-6 shrink-0">
+         <h2 class="text-lg font-bold text-gray-800">Publicaciones</h2>
+      </div>
+      <div class="px-6 pb-6 flex-1 overflow-auto">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-100">
+            <thead class="bg-gray-50/50">
+              <tr>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase w-32">SKU</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase w-48">Nombre</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase"></th>
+                <th class="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase w-20"></th>
+              </tr>
+            </thead>
+            <tbody id="tabla-cola" class="bg-white divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA 4: CONFIGURACIÓN -->
+    <section id="vista-config" class="w-full h-full hidden flex-col overflow-auto">
+      <div class="p-8 max-w-2xl">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-2">Credenciales de Cloudinary</h3>
+          <p class="text-sm text-gray-500 mb-6">Configura el entorno de almacenamiento multimedia. Requiere un Preset tipo Unsigned.</p>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Cloud Name</label>
+              <input type="text" id="inp-cloud-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Upload Preset</label>
+              <input type="text" id="inp-upload-preset" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm">
+            </div>
+            <div class="pt-4">
+              <button onclick="guardarConfig()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md shadow-sm text-sm font-medium">Guardar Configuración</button>
+            </div>
           </div>
         </div>
       </div>
@@ -123,251 +187,310 @@
 
   </main>
 
-  <!-- MODAL: GALERÍA DEL PRODUCTO -->
-  <div id="modal-galeria" class="fixed inset-0 bg-black/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl h-[80vh] flex flex-col overflow-hidden relative">
-      <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-        <div>
-          <h3 class="text-lg font-bold text-gray-800" id="modal-titulo">Galería: SKU</h3>
-          <p class="text-xs text-gray-500">Administra las imágenes de este producto.</p>
-        </div>
-        <button onclick="cerrarModalGaleria()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+  <!-- Modales Ocultos... (SIN CAMBIOS RESPECTO AL PASO ANTERIOR) -->
+  <!-- MODAL: NUEVO PRODUCTO -->
+  <div id="modal-nuevo-producto" class="fixed inset-0 bg-gray-900/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b flex justify-between items-center bg-white shrink-0">
+        <h3 class="text-lg font-bold text-gray-800">Crear Nuevo Producto</h3>
+        <button onclick="cerrarModalNuevoProducto()" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      
-      <div class="p-4 bg-white flex gap-4 border-b shrink-0 items-center">
-         <select id="modal-select-cat" class="border border-gray-300 rounded px-3 py-1.5 text-sm w-48">
-           <option value="PROD">Categoría: PROD</option>
-         </select>
-         <button id="btn-cloudinary" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded shadow-sm text-sm font-medium">
-           <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Subir Foto(s)
-         </button>
-      </div>
-
-      <div class="p-6 flex-1 overflow-y-auto bg-gray-100">
-        <div id="modal-grid-fotos" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-4">
-          <!-- Fotos del modal -->
+      <div class="flex-1 overflow-y-auto flex flex-col md:flex-row bg-gray-50">
+        <div class="w-full md:w-1/3 p-6 bg-white border-r">
+          <div class="space-y-4">
+            <div><label class="block text-sm font-semibold text-gray-700 mb-1">SKU *</label><input type="text" id="np-sku" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm uppercase"></div>
+            <div><label class="block text-sm font-semibold text-gray-700 mb-1">Nombre *</label><input type="text" id="np-nombre" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
+            <div><label class="block text-sm font-semibold text-gray-700 mb-1">Stock</label><input type="number" id="np-stock" value="0" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
+          </div>
         </div>
+        <div class="w-full md:w-2/3 p-6 flex flex-col">
+          <div class="flex justify-between items-center mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+            <div class="flex items-center gap-3"><span class="text-sm font-semibold text-blue-900">1. Define el tipo de medio:</span><select id="np-select-cat" class="border border-blue-200 rounded px-3 py-1.5 text-sm bg-white min-w-[150px]"><option value="">Seleccionar...</option></select></div>
+            <button onclick="abrirWidgetNuevoProducto()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> 2. Subir Archivos</button>
+          </div>
+          <div class="flex-1 bg-white border border-dashed border-gray-300 rounded-lg p-4 overflow-y-auto">
+            <div id="np-grid-fotos" class="grid grid-cols-3 sm:grid-cols-4 gap-3"><div id="np-empty-msg" class="col-span-full text-center text-gray-400 text-sm mt-10">Selecciona el tipo arriba y comienza a subir fotos o videos.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t bg-white flex justify-end gap-3 shrink-0">
+        <button onclick="cerrarModalNuevoProducto()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm font-medium">Cancelar</button>
+        <button id="btn-guardar-nuevo" onclick="guardarNuevoProducto()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow-sm text-sm font-medium transition-colors">Guardar Producto Final</button>
       </div>
     </div>
   </div>
 
-  <script>
-    // ESTADO GLOBAL
-    let state = { 
-      productos: [], categorias: [], medios: [], 
-      productoActivoManager: null, categoriaActivaManager: null,
-      productoActivoModal: null // Para el modal de fotos
-    };
-    let sortableLibrary, sortableCarousel;
-    let cloudWidget;
+  <div id="modal-galeria" class="fixed inset-0 bg-gray-900/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl h-[80vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b flex justify-between items-center bg-white"><h3 class="text-lg font-bold text-gray-800" id="modal-titulo">Galería</h3><button onclick="cerrarModalGaleria()" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="p-4 bg-gray-50 flex gap-4 border-b shrink-0 items-center justify-between"><select id="modal-select-cat" class="border border-gray-300 rounded px-3 py-2 text-sm w-48 bg-white focus:ring-blue-500"></select><button onclick="abrirWidgetGaleria()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Subir Archivos</button></div>
+      <div class="p-6 flex-1 overflow-y-auto bg-white"><div id="modal-grid-fotos" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-4"></div></div>
+    </div>
+  </div>
 
-    // 1. INICIALIZACIÓN
-    window.onload = () => {
-      google.script.run.withSuccessHandler(initApp).withFailureHandler(err => alert("Error al cargar: " + err)).getInitialData();
-    };
+  <div id="modal-editar" class="fixed inset-0 bg-gray-900/60 z-[70] hidden flex justify-center items-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-96 flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b bg-white flex justify-between items-center"><h3 class="font-bold text-gray-800">Editar Producto</h3><button onclick="cerrarModalEditar()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="p-6 space-y-4"><input type="hidden" id="ed-sku"><div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" id="ed-nombre" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Stock</label><input type="number" id="ed-stock" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div></div>
+      <div class="px-6 py-4 bg-gray-50 border-t flex justify-end gap-2"><button onclick="cerrarModalEditar()" class="px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">Cancelar</button><button onclick="guardarEdicionProducto()" class="px-4 py-2 bg-blue-600 text-white rounded shadow-sm text-sm hover:bg-blue-700">Guardar</button></div>
+    </div>
+  </div>
+
+  <script>
+    let state = { productos: [], categorias: [], medios: [], cola: [], config: {}, productoActivoManager: null, categoriaActivaManager: null, productoActivoModal: null };
+    let sortableLibrary, sortableCarousel, cloudWidget;
+    let contextoSubida = 'galeria'; 
+    let categoriaTempUpload = ''; 
+    let imagenesNuevasTemp = []; 
+
+    function esVideo(url) { return url.includes('/video/upload/'); }
+    function obtenerThumbnail(url) { return esVideo(url) ? url.replace(/\.[^/.]+$/, ".jpg") : url; }
+
+    function showToast(mensaje, tipo = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bg = tipo === 'success' ? 'bg-green-50 border-green-200 text-green-800' : tipo === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-50 border-blue-200 text-blue-800';
+      const icon = tipo === 'success' ? 'fa-check-circle text-green-500' : tipo === 'error' ? 'fa-circle-exclamation text-red-500' : 'fa-info-circle text-blue-500';
+      toast.className = `flex items-center gap-3 p-4 border rounded-lg shadow-lg ${bg} toast-enter`;
+      toast.innerHTML = `<i class="fa-solid ${icon} text-lg"></i> <p class="text-sm font-medium">${mensaje}</p>`;
+      container.appendChild(toast);
+      setTimeout(() => { toast.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
+    window.onload = () => { google.script.run.withSuccessHandler(initApp).withFailureHandler(e => showToast(e, 'error')).getInitialData(); };
 
     function initApp(data) {
       state = {...state, ...data};
       if (state.categorias.length > 0) state.categoriaActivaManager = state.categorias[0].id;
-      
-      renderTablaProductos();
-      actualizarSelectManager();
-      renderizarTabsManager();
-      poblarSelectCategoriasModal();
-      initSortable();
+      renderTablaProductos(); renderTablaCola(); actualizarDatalistManager(); renderizarTabsManager(); poblarSelectCategoriasModales(); initSortable();
+      document.getElementById('inp-cloud-name').value = state.config.CLOUDINARY_CLOUD_NAME || '';
+      document.getElementById('inp-upload-preset').value = state.config.CLOUDINARY_UPLOAD_PRESET || '';
       initCloudinary();
-      
       document.getElementById('loader').classList.add('hidden');
     }
 
-    // 2. NAVEGACIÓN SPA
     function cambiarVista(vista) {
       document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
       document.getElementById('nav-' + vista).classList.add('active');
-      
-      if(vista === 'productos') {
-        document.getElementById('vista-manager').classList.add('hidden');
-        document.getElementById('vista-productos').classList.remove('hidden');
-        document.getElementById('vista-productos').classList.add('flex');
-      } else {
-        document.getElementById('vista-productos').classList.add('hidden');
-        document.getElementById('vista-productos').classList.remove('flex');
-        document.getElementById('vista-manager').classList.remove('hidden');
-        document.getElementById('vista-manager').classList.add('flex');
+      ['productos', 'manager', 'cola', 'config'].forEach(v => { document.getElementById('vista-' + v).classList.add('hidden'); document.getElementById('vista-' + v).classList.remove('flex'); });
+      document.getElementById('vista-' + vista).classList.remove('hidden'); document.getElementById('vista-' + vista).classList.add('flex');
+      const titulos = { 'productos': 'Gestión de Inventario', 'manager': 'Diseñador de Posts', 'cola': 'Historial / Cola', 'config': 'Configuración del Sistema' };
+      document.getElementById('header-title').textContent = titulos[vista];
+    }
+
+    function filtrarTabla(idTabla, query) {
+      const q = query.toLowerCase();
+      const filas = document.getElementById(idTabla).getElementsByTagName('tr');
+      for(let i=0; i<filas.length; i++){
+        let texto = filas[i].textContent || filas[i].innerText;
+        filas[i].style.display = texto.toLowerCase().indexOf(q) > -1 ? "" : "none";
       }
     }
 
-    // 3. LOGICA VISTA: PRODUCTOS (CRUD)
     function renderTablaProductos() {
-      const tbody = document.getElementById('tabla-productos');
-      tbody.innerHTML = '';
+      const tbody = document.getElementById('tabla-productos'); tbody.innerHTML = '';
       state.productos.forEach(p => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${p.sku}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.nombre}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.stock}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <button onclick="abrirModalGaleria('${p.sku}')" class="text-blue-600 hover:text-blue-900 mr-3" title="Galería"><i class="fa-regular fa-image text-lg"></i></button>
-            <button onclick="editarProductoPrompt('${p.sku}')" class="text-amber-600 hover:text-amber-900 mr-3" title="Editar"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="eliminarProductoFront('${p.sku}')" class="text-red-600 hover:text-red-900" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${p.nombre}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-semibold">${p.stock}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+            <button onclick="abrirModalGaleria('${p.sku}')" class="bg-blue-50 text-blue-600 p-2 rounded hover:bg-blue-100 mr-2" title="Galería"><i class="fa-regular fa-images"></i></button>
+            <button onclick="abrirModalEditar('${p.sku}')" class="bg-orange-50 text-orange-500 p-2 rounded hover:bg-orange-100 mr-2" title="Editar"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="eliminarProductoFront('${p.sku}')" class="bg-red-50 text-red-500 p-2 rounded hover:bg-red-100" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
           </td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    function crearProductoPrompt() {
-      const sku = prompt("Ingresa el SKU:"); if(!sku) return;
-      const nombre = prompt("Ingresa el Nombre:"); if(!nombre) return;
-      const stock = prompt("Ingresa el Stock inicial:", "0");
-      
-      document.getElementById('loader').classList.remove('hidden');
-      google.script.run.withSuccessHandler(nuevoProd => {
-        state.productos.push(nuevoProd);
-        renderTablaProductos(); actualizarSelectManager();
-        document.getElementById('loader').classList.add('hidden');
-      }).crearProducto(sku, nombre, stock || 0);
+    // ----------------------------------------------------------------------
+    // RENDEREIZADO DE LA COLA ACTUALIZADO CON FOTOS (MOCKUP DEL USUARIO)
+    // ----------------------------------------------------------------------
+    function renderTablaCola() {
+      const tbody = document.getElementById('tabla-cola');
+      tbody.innerHTML = '';
+      if(state.cola.length === 0) {
+         tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-400">No hay publicaciones en la cola.</td></tr>';
+         return;
+      }
+      state.cola.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.className = "group"; // Para efectos hover si se desea
+        
+        // Buscar el nombre del producto en el state actual
+        const prod = state.productos.find(p => p.sku === c.sku);
+        const nombreProd = prod ? prod.nombre : '-';
+        
+        // Generar la galería de miniaturas
+        const urls = c.urls ? c.urls.split(' * ') : [];
+        let htmlThumbs = '<div class="flex flex-wrap items-center gap-2">';
+        urls.forEach(url => {
+           if(!url) return;
+           const src = obtenerThumbnail(url);
+           const iconPlay = esVideo(url) ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-circle-play text-white/80 text-xl drop-shadow-md"></i></div>' : '';
+           
+           // Estilos basados en tu mockup: Bordes azules y redondeados
+           htmlThumbs += `
+             <div class="w-14 h-14 bg-blue-50/30 border border-blue-200 rounded-lg p-0.5 flex items-center justify-center relative overflow-hidden shrink-0">
+                <img src="${src}" class="w-full h-full object-cover rounded-md pointer-events-none">
+                ${iconPlay}
+             </div>
+           `;
+        });
+        htmlThumbs += '</div>';
+
+        tr.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">${c.sku}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">${nombreProd}</td>
+          <td class="px-6 py-4 text-sm">${htmlThumbs}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+            <button onclick="eliminarPostFront('${c.id}')" class="bg-red-50 text-red-500 p-2 rounded-md hover:bg-red-100 transition-colors opacity-80 hover:opacity-100" title="Eliminar Publicación"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
-    function editarProductoPrompt(sku) {
-      const prod = state.productos.find(p => p.sku === sku);
-      const nuevoNombre = prompt("Modificar Nombre:", prod.nombre); if(nuevoNombre === null) return;
-      const nuevoStock = prompt("Modificar Stock:", prod.stock); if(nuevoStock === null) return;
+    function eliminarPostFront(idPost) {
+       if(!confirm("¿Estás seguro de eliminar esta publicación? No se enviará a Make.")) return;
+       document.getElementById('loader').classList.remove('hidden');
+       google.script.run.withSuccessHandler(idBorrado => {
+         state.cola = state.cola.filter(c => c.id !== idBorrado);
+         renderTablaCola();
+         document.getElementById('loader').classList.add('hidden');
+         showToast("Publicación eliminada de la cola");
+       }).withFailureHandler(err => {
+         document.getElementById('loader').classList.add('hidden');
+         showToast("Error al eliminar", "error");
+       }).eliminarPostCola(idPost);
+    }
+    // ----------------------------------------------------------------------
 
+    function poblarSelectCategoriasModales() {
+      const selNP = document.getElementById('np-select-cat'); const selGal = document.getElementById('modal-select-cat');
+      state.categorias.forEach(c => { selNP.add(new Option(c.nombre, c.id)); selGal.add(new Option(c.nombre, c.id)); });
+    }
+
+    function abrirModalNuevoProducto() {
+      imagenesNuevasTemp = []; document.getElementById('np-sku').value = ''; document.getElementById('np-nombre').value = ''; document.getElementById('np-stock').value = '0'; document.getElementById('np-select-cat').value = '';
+      renderizarFotosNuevoProducto(); document.getElementById('modal-nuevo-producto').classList.remove('hidden');
+    }
+    function cerrarModalNuevoProducto() { document.getElementById('modal-nuevo-producto').classList.add('hidden'); }
+    
+    function renderizarFotosNuevoProducto() {
+      const grid = document.getElementById('np-grid-fotos'); const msg = document.getElementById('np-empty-msg');
+      document.querySelectorAll('.np-foto-temp').forEach(el => el.remove());
+      if(imagenesNuevasTemp.length === 0) { msg.style.display = 'block'; } else {
+        msg.style.display = 'none';
+        imagenesNuevasTemp.forEach((obj, idx) => {
+          const div = document.createElement('div'); div.className = 'np-foto-temp bg-white rounded border p-1 aspect-square relative group overflow-hidden';
+          const src = obtenerThumbnail(obj.url); const iconPlay = esVideo(obj.url) ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-circle-play text-white/80 text-3xl drop-shadow-md"></i></div>' : '';
+          div.innerHTML = `<img src="${src}" class="w-full h-full object-cover rounded">${iconPlay}<span class="absolute bottom-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded">${obj.categoria}</span><button onclick="borrarFotoTemp(${idx})" class="absolute top-1 right-1 bg-red-600/90 text-white rounded p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-trash"></i></button>`;
+          grid.appendChild(div);
+        });
+      }
+    }
+    
+    function borrarFotoTemp(idx) { imagenesNuevasTemp.splice(idx, 1); renderizarFotosNuevoProducto(); }
+
+    function abrirWidgetNuevoProducto() {
+      const cat = document.getElementById('np-select-cat').value;
+      if(!cat) return showToast('Por favor, selecciona primero el tipo de medio a subir', 'error');
+      if(!cloudWidget) return showToast("Falta configuración de Cloudinary", "error");
+      contextoSubida = 'nuevo'; categoriaTempUpload = cat; cloudWidget.open();
+    }
+
+    function guardarNuevoProducto() {
+      const sku = document.getElementById('np-sku').value.trim(); const nombre = document.getElementById('np-nombre').value.trim(); const stock = document.getElementById('np-stock').value || 0;
+      if(!sku || !nombre) return showToast("SKU y Nombre son obligatorios", "error");
+      const btn = document.getElementById('btn-guardar-nuevo'); btn.disabled = true; btn.innerText = "Guardando...";
+      google.script.run
+        .withSuccessHandler(res => { state.productos.push(res.producto); state.medios = state.medios.concat(res.mediosNuevos); renderTablaProductos(); actualizarDatalistManager(); cerrarModalNuevoProducto(); showToast("Producto creado exitosamente"); btn.disabled = false; btn.innerText = "Guardar Producto Final"; })
+        .withFailureHandler(err => { showToast(err.message || "Error al crear", "error"); btn.disabled = false; btn.innerText = "Guardar Producto Final"; })
+        .crearProductoConImagenes({ sku: sku, nombre: nombre, stock: stock, imagenes: imagenesNuevasTemp });
+    }
+
+    function abrirModalEditar(sku) {
+      const prod = state.productos.find(p => p.sku === sku);
+      document.getElementById('ed-sku').value = prod.sku; document.getElementById('ed-nombre').value = prod.nombre; document.getElementById('ed-stock').value = prod.stock;
+      document.getElementById('modal-editar').classList.remove('hidden');
+    }
+    function cerrarModalEditar() { document.getElementById('modal-editar').classList.add('hidden'); }
+    function guardarEdicionProducto() {
+      const sku = document.getElementById('ed-sku').value; const nom = document.getElementById('ed-nombre').value; const stk = document.getElementById('ed-stock').value;
       document.getElementById('loader').classList.remove('hidden');
-      google.script.run.withSuccessHandler(res => {
-        prod.nombre = res.nombre; prod.stock = res.stock;
-        renderTablaProductos(); actualizarSelectManager();
-        document.getElementById('loader').classList.add('hidden');
-      }).actualizarProducto(sku, nuevoNombre, nuevoStock);
+      google.script.run.withSuccessHandler(res => { const prod = state.productos.find(p => p.sku === sku); prod.nombre = res.nombre; prod.stock = res.stock; renderTablaProductos(); actualizarDatalistManager(); cerrarModalEditar(); document.getElementById('loader').classList.add('hidden'); showToast("Producto actualizado"); }).actualizarProducto(sku, nom, stk);
     }
 
     function eliminarProductoFront(sku) {
-      if(!confirm(`¿Estás seguro de eliminar el SKU ${sku}?`)) return;
+      if(!confirm(`¿Eliminar el SKU ${sku} de la base de datos?`)) return;
       document.getElementById('loader').classList.remove('hidden');
-      google.script.run.withSuccessHandler(skuEliminado => {
-        state.productos = state.productos.filter(p => p.sku !== skuEliminado);
-        renderTablaProductos(); actualizarSelectManager();
-        if(state.productoActivoManager === skuEliminado) { state.productoActivoManager = null; renderizarBibliotecaManager(); }
-        document.getElementById('loader').classList.add('hidden');
-      }).eliminarProducto(sku);
+      google.script.run.withSuccessHandler(skuEliminado => { state.productos = state.productos.filter(p => p.sku !== skuEliminado); renderTablaProductos(); actualizarDatalistManager(); if(state.productoActivoManager === skuEliminado) { state.productoActivoManager = null; document.getElementById('input-producto').value=''; renderizarBibliotecaManager(); } document.getElementById('loader').classList.add('hidden'); showToast("Producto eliminado"); }).eliminarProducto(sku);
     }
 
-    // 4. LOGICA MODAL GALERÍA Y CLOUDINARY
-    function poblarSelectCategoriasModal() {
-      const sel = document.getElementById('modal-select-cat');
-      sel.innerHTML = '';
-      state.categorias.forEach(c => sel.add(new Option(c.nombre, c.id)));
-    }
-
-    function abrirModalGaleria(sku) {
-      state.productoActivoModal = sku;
-      document.getElementById('modal-titulo').textContent = `Galería: ${sku}`;
-      renderizarFotosModal();
-      document.getElementById('modal-galeria').classList.remove('hidden');
-    }
-
-    function cerrarModalGaleria() {
-      document.getElementById('modal-galeria').classList.add('hidden');
-      state.productoActivoModal = null;
-      renderizarBibliotecaManager(); // Refresca por si modificaste fotos del producto activo en manager
-    }
+    function abrirModalGaleria(sku) { state.productoActivoModal = sku; document.getElementById('modal-titulo').textContent = `Galería: ${sku}`; renderizarFotosModal(); document.getElementById('modal-galeria').classList.remove('hidden'); }
+    function cerrarModalGaleria() { document.getElementById('modal-galeria').classList.add('hidden'); state.productoActivoModal = null; renderizarBibliotecaManager(); }
+    function abrirWidgetGaleria() { if(!cloudWidget) return showToast("Falta configuración de Cloudinary", "error"); contextoSubida = 'galeria'; cloudWidget.open(); }
 
     function renderizarFotosModal() {
-      const grid = document.getElementById('modal-grid-fotos');
-      grid.innerHTML = '';
+      const grid = document.getElementById('modal-grid-fotos'); grid.innerHTML = '';
       const fotos = state.medios.filter(m => m.sku === state.productoActivoModal);
-      
-      if(fotos.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-center text-gray-500 mt-10">No hay fotos. Sube una.</div>';
-        return;
-      }
-      
+      if(fotos.length === 0) return grid.innerHTML = '<div class="col-span-full text-center text-gray-500 mt-10">No hay archivos registrados.</div>';
       fotos.forEach(foto => {
-        const div = document.createElement('div');
-        div.className = 'bg-white rounded border shadow-sm p-1 w-full aspect-square relative group';
-        div.innerHTML = `
-          <img src="${foto.url}" class="w-full h-full object-contain">
-          <span class="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1 rounded">${foto.categoria}</span>
-          <button onclick="eliminarMedioFront('${foto.id}')" class="absolute inset-0 bg-red-600/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded">
-            <i class="fa-solid fa-trash text-2xl"></i>
-          </button>
-        `;
+        const div = document.createElement('div'); div.className = 'bg-white rounded border shadow-sm p-1 aspect-square relative group overflow-hidden';
+        const src = obtenerThumbnail(foto.url); const iconPlay = esVideo(foto.url) ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-circle-play text-white/80 text-3xl drop-shadow-md"></i></div>' : '';
+        div.innerHTML = `<img src="${src}" class="w-full h-full object-cover rounded">${iconPlay}<span class="absolute top-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded">${foto.categoria}</span><button onclick="eliminarMedioFront('${foto.id}')" class="absolute inset-0 bg-red-600/90 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded"><i class="fa-solid fa-trash text-xl"></i></button>`;
         grid.appendChild(div);
       });
     }
 
+    function eliminarMedioFront(idMedio) {
+      if(!confirm("¿Borrar este archivo definitivamente?")) return;
+      google.script.run.withSuccessHandler(idBorrado => { state.medios = state.medios.filter(m => m.id !== idBorrado); renderizarFotosModal(); showToast("Archivo eliminado"); }).eliminarMedio(idMedio);
+    }
+
     function initCloudinary() {
-      cloudWidget = cloudinary.createUploadWidget({
-        cloudName: 'drf83zhw', uploadPreset: 'app_instagram', sources: ['local', 'url'], multiple: true
-      }, (error, result) => { 
+      if(!state.config.CLOUDINARY_CLOUD_NAME || !state.config.CLOUDINARY_UPLOAD_PRESET) return;
+      cloudWidget = cloudinary.createUploadWidget({ cloudName: state.config.CLOUDINARY_CLOUD_NAME, uploadPreset: state.config.CLOUDINARY_UPLOAD_PRESET, sources: ['local', 'url'], multiple: true, resourceType: "auto" }, (error, result) => { 
         if (!error && result && result.event === "success") {
-          const catActiva = document.getElementById('modal-select-cat').value;
-          google.script.run.withSuccessHandler(nuevoMedio => {
-            state.medios.push(nuevoMedio);
-            renderizarFotosModal(); // Refresca en vivo
-          }).guardarNuevoMedio(result.info.secure_url, state.productoActivoModal, catActiva);
+          const url = result.info.secure_url;
+          if (contextoSubida === 'nuevo') { imagenesNuevasTemp.push({url: url, categoria: categoriaTempUpload}); renderizarFotosNuevoProducto(); } 
+          else if (contextoSubida === 'galeria') { const catActiva = document.getElementById('modal-select-cat').value; google.script.run.withSuccessHandler(nuevoMedio => { state.medios.push(nuevoMedio); renderizarFotosModal(); }).guardarNuevoMedio(url, state.productoActivoModal, catActiva); }
         }
       });
-      document.getElementById("btn-cloudinary").addEventListener("click", () => cloudWidget.open(), false);
     }
 
-    function eliminarMedioFront(idMedio) {
-      if(!confirm("¿Borrar esta imagen?")) return;
-      google.script.run.withSuccessHandler(idBorrado => {
-        state.medios = state.medios.filter(m => m.id !== idBorrado);
-        renderizarFotosModal();
-      }).eliminarMedio(idMedio);
-    }
-
-    // 5. LOGICA VISTA: CONTENT MANAGER
-    function actualizarSelectManager() {
-      const select = document.getElementById('select-producto');
-      select.innerHTML = '<option value="">-- Selecciona un producto --</option>';
-      state.productos.forEach(p => select.add(new Option(`${p.sku} - ${p.nombre}`, p.sku)));
-      if(state.productoActivoManager) select.value = state.productoActivoManager;
+    function actualizarDatalistManager() {
+      const dl = document.getElementById('lista-productos'); dl.innerHTML = '';
+      state.productos.forEach(p => { const opt = document.createElement('option'); opt.value = `${p.sku} - ${p.nombre}`; dl.appendChild(opt); });
     }
 
     function seleccionarProductoManager() {
-      state.productoActivoManager = document.getElementById('select-producto').value;
-      limpiarCarrusel();
-      renderizarBibliotecaManager();
+      const val = document.getElementById('input-producto').value; const sku = val.split(' - ')[0]; const existe = state.productos.find(p => p.sku === sku);
+      if(existe) { state.productoActivoManager = sku; limpiarCarrusel(); renderizarBibliotecaManager(); } else { state.productoActivoManager = null; renderizarBibliotecaManager(); }
     }
 
     function renderizarTabsManager() {
-      const container = document.getElementById('tabs-container');
-      container.innerHTML = '';
+      const container = document.getElementById('tabs-container'); container.innerHTML = '';
       state.categorias.forEach(cat => {
-        const btn = document.createElement('button');
-        btn.textContent = cat.nombre;
+        const btn = document.createElement('button'); btn.textContent = cat.nombre;
         btn.onclick = () => { state.categoriaActivaManager = cat.id; renderizarTabsManager(); renderizarBibliotecaManager(); };
-        btn.className = cat.id === state.categoriaActivaManager ? 'pb-2 px-1 tab-active' : 'pb-2 px-1 tab-inactive';
-        container.appendChild(btn);
+        btn.className = cat.id === state.categoriaActivaManager ? 'pb-3 px-2 text-sm tab-active' : 'pb-3 px-2 text-sm tab-inactive hover:text-gray-900'; container.appendChild(btn);
       });
     }
 
     function renderizarBibliotecaManager() {
-      const grid = document.getElementById('library-grid');
-      grid.innerHTML = '';
-      if (!state.productoActivoManager) {
-        grid.innerHTML = '<div class="col-span-full text-center text-gray-400 mt-10">Selecciona un producto.</div>';
-        return;
-      }
-
+      const grid = document.getElementById('library-grid'); grid.innerHTML = '';
+      if (!state.productoActivoManager) return grid.innerHTML = '<div class="col-span-full text-center text-gray-400 mt-10 text-sm">Selecciona o busca un producto arriba.</div>';
       const fotos = state.medios.filter(m => m.sku === state.productoActivoManager && m.categoria === state.categoriaActivaManager);
-      if (fotos.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-center text-gray-400 text-sm mt-10">No hay fotos en esta pestaña.</div>';
-        return;
-      }
-      
+      if (fotos.length === 0) return grid.innerHTML = '<div class="col-span-full text-center text-gray-400 text-sm mt-10">No hay archivos en esta pestaña.</div>';
       fotos.forEach(foto => {
-        const div = document.createElement('div');
-        div.className = 'img-card drag-card bg-white rounded-lg border p-1 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 flex items-center justify-center relative';
-        div.setAttribute('data-url', foto.url);
-        div.innerHTML = `<img src="${foto.url}" class="max-w-full max-h-full object-contain pointer-events-none">`;
-        div.ondblclick = function() { if(this.parentElement.id === 'carousel-zone') { this.remove(); actualizarContador(); } };
-        grid.appendChild(div);
+        const div = document.createElement('div'); div.className = 'img-card drag-card bg-white rounded-lg border border-gray-200 p-1 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 flex items-center justify-center relative shadow-sm hover:shadow-md overflow-hidden'; div.setAttribute('data-url', foto.url);
+        const src = obtenerThumbnail(foto.url); const iconPlay = esVideo(foto.url) ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-circle-play text-white/80 text-2xl drop-shadow-md"></i></div>' : '';
+        div.innerHTML = `<img src="${src}" class="max-w-full max-h-full object-cover pointer-events-none rounded">${iconPlay}`;
+        div.ondblclick = function() { if(this.parentElement.id === 'carousel-zone') { this.remove(); actualizarContador(); } }; grid.appendChild(div);
       });
     }
 
@@ -377,29 +500,27 @@
     }
 
     function actualizarContador() {
-      const items = document.getElementById('carousel-zone').querySelectorAll('.img-card');
-      document.getElementById('counter').textContent = `${items.length} fotos`;
-      document.getElementById('empty-carousel-msg').style.display = items.length > 0 ? 'none' : 'block';
+      const items = document.getElementById('carousel-zone').querySelectorAll('.img-card'); document.getElementById('counter').textContent = `${items.length} items`; document.getElementById('empty-carousel-msg').style.display = items.length > 0 ? 'none' : 'block';
     }
 
-    function limpiarCarrusel() {
-      document.getElementById('carousel-zone').querySelectorAll('.img-card').forEach(el => el.remove());
-      actualizarContador();
-    }
+    function limpiarCarrusel() { document.getElementById('carousel-zone').querySelectorAll('.img-card').forEach(el => el.remove()); actualizarContador(); }
 
     function guardarPost() {
       const items = document.getElementById('carousel-zone').querySelectorAll('.img-card');
-      if (items.length === 0) return alert("Agrega fotos al diseñador.");
-
-      const btn = document.getElementById('btn-guardar');
-      btn.disabled = true; btn.innerHTML = 'Enviando...';
-
+      if (items.length === 0) return showToast("Agrega contenido a la zona de edición.", "error");
+      if (items.length > 10) return showToast("Instagram permite máximo 10 archivos por carrusel.", "error");
+      const btn = document.getElementById('btn-guardar'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
       const payload = { sku: state.productoActivoManager, urls: Array.from(items).map(i => i.getAttribute('data-url')) };
-
-      google.script.run.withSuccessHandler(res => {
-        alert(res); limpiarCarrusel();
-        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Enviar a Make';
+      google.script.run.withSuccessHandler(nuevoPost => {
+        state.cola.unshift(nuevoPost); renderTablaCola(); showToast("Publicación encolada correctamente"); limpiarCarrusel();
+        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar a Make';
       }).enviarAColaPublicacion(payload);
+    }
+
+    function guardarConfig() {
+      const cn = document.getElementById('inp-cloud-name').value.trim(); const up = document.getElementById('inp-upload-preset').value.trim();
+      document.getElementById('loader').classList.remove('hidden');
+      google.script.run.withSuccessHandler(res => { state.config = res; initCloudinary(); document.getElementById('loader').classList.add('hidden'); showToast("Configuración actualizada"); }).guardarConfiguracion(cn, up);
     }
   </script>
 </body>
