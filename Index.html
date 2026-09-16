@@ -5,8 +5,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+  <!-- LIBRERIA EMOJI PICKER -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    emoji-picker { width: 320px;  height: 320px;}
     .nav-item { cursor: pointer; transition: all 0.2s; }
     .nav-item.active { background-color: #eff6ff; color: #3b82f6; font-weight: 600; border-left: 4px solid #3b82f6; }
     .nav-item:not(.active) { border-left: 4px solid transparent; }
@@ -34,6 +37,12 @@
   <div id="loader" class="fixed inset-0 bg-white/90 z-[100] flex flex-col items-center justify-center">
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
     <p class="text-gray-600 font-medium text-sm tracking-wide">Sincronizando Workspace...</p>
+  </div>
+
+  <!-- MODAL DE REPRODUCTOR DE VIDEO -->
+  <div id="modal-video" class="fixed inset-0 bg-black/95 z-[250] hidden flex-col justify-center items-center backdrop-blur-sm">
+    <button onclick="cerrarVideo()" class="absolute top-6 right-6 text-white/70 hover:text-white text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
+    <video id="video-player" controls class="max-w-4xl max-h-[85vh] rounded-lg shadow-2xl bg-black outline-none"></video>
   </div>
 
   <!-- SIDEBAR -->
@@ -84,10 +93,8 @@
               <tr>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">SKU</th>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Nombre</th>
-                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
-                  Stock 
-                  <i class="fa-solid fa-circle-info text-gray-400 hover:text-blue-500 cursor-help" title="La cantidad de stock influye en el tipo de pie de foto que se quiera expresar en la publicación final."></i>
-                </th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase flex items-center gap-2">Stock <i class="fa-solid fa-circle-info text-gray-400 hover:text-blue-500 cursor-help" title="Influye en el tipo de pie de foto generado."></i></th>
                 <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase">Acciones</th>
               </tr>
             </thead>
@@ -109,6 +116,7 @@
       </div>
 
       <div class="flex-1 flex overflow-hidden">
+        <!-- Panel Izquierdo: Galería -->
         <div class="w-1/2 bg-white flex flex-col h-full border-r">
           <div class="flex border-b px-4 mt-2 gap-6 overflow-x-auto no-scrollbar" id="tabs-container"></div>
           <div class="p-6 overflow-y-auto flex-1">
@@ -118,20 +126,52 @@
           </div>
         </div>
         
+        <!-- Panel Derecho: Edición -->
         <div class="w-1/2 bg-gray-50 flex flex-col h-full">
-          <div class="p-6 flex-1 overflow-y-auto">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div class="bg-white border-b px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-gray-800 text-sm">Arrastra tus medios aquí</h3>
+          <div class="p-6 flex-1 flex flex-col">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
+              
+              <!-- Cabecera de Edición -->
+              <div class="bg-white border-b px-5 py-3 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                  <h3 class="font-bold text-gray-800 text-sm">Arrastra tus medios aquí</h3>
+                  <div class="flex items-center gap-1.5 ml-2">
+                    <button onclick="generarAutomatizacion()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs font-semibold px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 border border-purple-200 shadow-sm"><i class="fa-solid fa-wand-magic-sparkles"></i> Automatizar IA</button>
+                    <div class="relative group cursor-help ml-1">
+                      <i class="fa-solid fa-circle-info text-gray-400 text-sm"></i>
+                      <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-64 bg-gray-800 text-white text-[11px] leading-relaxed rounded p-2.5 z-10 shadow-lg text-center">Esta herramienta agrupa aleatoriamente los medios disponibles de este artículo utilizando estructuras probadas de engagement (mezclando tipos de foto) para armar carruseles en segundos sin esfuerzo.</div>
+                    </div>
+                  </div>
+                </div>
                 <span id="counter" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold">0 items</span>
               </div>
-              <div id="carousel-zone" class="p-5 flex gap-4 overflow-x-auto items-center min-h-[220px] bg-gray-50/50 relative">
+              
+              <!-- Zona de Drop -->
+              <div id="carousel-zone" class="p-5 flex gap-4 overflow-x-auto items-center min-h-[180px] bg-gray-50/50 relative shrink-0">
                  <div id="empty-carousel-msg" class="w-full text-center text-gray-400 text-xs font-medium tracking-widest uppercase absolute left-0 right-0 pointer-events-none">Zona de edición</div>
+              </div>
+              
+              <!-- Controles Extra de Post con Emoji Picker -->
+              <div class="border-t bg-white p-4 flex-1 overflow-y-auto">
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Pie de foto manual (Opcional)</label>
+                    <div class="relative w-full">
+                      <textarea id="inp-pie-foto" rows="2" placeholder="Si lo dejas en blanco, la Inteligencia Artificial generará el texto basándose en el producto y el stock..." class="w-full pl-3 pr-10 py-2 text-sm bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-1 focus:ring-blue-500 resize-none"></textarea>
+                      <button id="btn-emoji" type="button" class="absolute bottom-2 right-2 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-1 shadow-sm border border-gray-100">
+                        <i class="fa-regular fa-face-smile text-lg"></i>
+                      </button>
+                      <div id="emoji-popup" class="hidden absolute top-full right-0 mt-2 z-50 shadow-2xl rounded-lg overflow-hidden border border-gray-200">
+                        <emoji-picker class="light"></emoji-picker>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div class="bg-white border-t p-4 flex justify-between items-center shadow-sm">
-            <button onclick="limpiarCarrusel()" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md shadow-sm font-medium text-sm transition-colors">Limpiar</button>
+          <div class="bg-white border-t p-4 flex justify-between items-center shadow-sm shrink-0">
+            <button onclick="limpiarCarrusel()" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md shadow-sm font-medium text-sm transition-colors">Limpiar Todo</button>
             <button id="btn-guardar" onclick="guardarPost()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm font-medium text-sm transition-colors flex items-center gap-2">
               <i class="fa-solid fa-paper-plane"></i> Enviar a Make
             </button>
@@ -140,20 +180,37 @@
       </div>
     </section>
 
-    <!-- VISTA 3: COLA DE ENVÍOS (VISUALIZACIÓN DE FOTOS) -->
+    <!-- VISTA 3: COLA DE ENVÍOS -->
     <section id="vista-cola" class="w-full h-full hidden flex-col overflow-hidden">
-      <div class="p-6 shrink-0">
-         <h2 class="text-lg font-bold text-gray-800">Publicaciones</h2>
+      <div class="p-6 shrink-0 flex justify-between items-center bg-white border-b">
+         <h2 class="text-lg font-bold text-gray-800">Publicaciones Pendientes</h2>
+         
+         <!-- NUEVO CONTROL DE ORDEN DE COLA -->
+         <div class="flex items-center gap-3 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg shadow-sm">
+            <label class="text-xs font-semibold text-gray-700">Distribución (Make):</label>
+            <select id="sel-orden-cola" class="text-sm bg-white border border-gray-200 rounded py-1 px-2 focus:ring-blue-500 outline-none">
+              <option value="ciclico">Cíclico (Secuencial)</option>
+              <option value="aleatorio">Aleatorio</option>
+            </select>
+            <button onclick="aplicarOrdenCola()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded transition-colors shadow-sm">Aplicar</button>
+            <div class="relative group cursor-help ml-1">
+              <i class="fa-solid fa-circle-info text-gray-400 text-sm"></i>
+              <div class="absolute top-full right-0 mt-2 hidden group-hover:block w-64 bg-gray-800 text-white text-[11px] leading-relaxed rounded p-2.5 z-50 shadow-lg text-left">
+                Determina el orden de procesado. <b>Cíclico</b> ordena por fecha de creación, <b>Aleatorio</b> distribuye los posts sin patrón. Aplica a todos los elementos pendientes y a los que se creen a futuro.
+              </div>
+            </div>
+         </div>
       </div>
-      <div class="px-6 pb-6 flex-1 overflow-auto">
+      <div class="px-6 pb-6 flex-1 overflow-auto mt-4">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <table class="min-w-full divide-y divide-gray-100">
             <thead class="bg-gray-50/50">
               <tr>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase w-32">SKU</th>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase w-48">Nombre</th>
-                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase"></th>
-                <th class="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase w-20"></th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase">Medios</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase">Pie de Foto</th>
+                <th class="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase w-20">Acción</th>
               </tr>
             </thead>
             <tbody id="tabla-cola" class="bg-white divide-y divide-gray-100"></tbody>
@@ -169,17 +226,9 @@
           <h3 class="text-lg font-bold text-gray-800 mb-2">Credenciales de Cloudinary</h3>
           <p class="text-sm text-gray-500 mb-6">Configura el entorno de almacenamiento multimedia. Requiere un Preset tipo Unsigned.</p>
           <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Cloud Name</label>
-              <input type="text" id="inp-cloud-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Upload Preset</label>
-              <input type="text" id="inp-upload-preset" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm">
-            </div>
-            <div class="pt-4">
-              <button onclick="guardarConfig()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md shadow-sm text-sm font-medium">Guardar Configuración</button>
-            </div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Cloud Name</label><input type="text" id="inp-cloud-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm"></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Upload Preset</label><input type="text" id="inp-upload-preset" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm"></div>
+            <div class="pt-4"><button onclick="guardarConfig()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md shadow-sm text-sm font-medium">Guardar Configuración</button></div>
           </div>
         </div>
       </div>
@@ -187,7 +236,6 @@
 
   </main>
 
-  <!-- Modales Ocultos... (SIN CAMBIOS RESPECTO AL PASO ANTERIOR) -->
   <!-- MODAL: NUEVO PRODUCTO -->
   <div id="modal-nuevo-producto" class="fixed inset-0 bg-gray-900/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
     <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
@@ -200,6 +248,14 @@
           <div class="space-y-4">
             <div><label class="block text-sm font-semibold text-gray-700 mb-1">SKU *</label><input type="text" id="np-sku" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm uppercase"></div>
             <div><label class="block text-sm font-semibold text-gray-700 mb-1">Nombre *</label><input type="text" id="np-nombre" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
+              <select id="np-estado" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm bg-white">
+                <option value="Activo">Activo</option>
+                <option value="Inactivo">Inactivo</option>
+                <option value="Borrador">Borrador</option>
+              </select>
+            </div>
             <div><label class="block text-sm font-semibold text-gray-700 mb-1">Stock</label><input type="number" id="np-stock" value="0" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
           </div>
         </div>
@@ -220,18 +276,38 @@
     </div>
   </div>
 
+  <!-- MODAL: GALERIA -->
   <div id="modal-galeria" class="fixed inset-0 bg-gray-900/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
     <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl h-[80vh] flex flex-col overflow-hidden">
       <div class="px-6 py-4 border-b flex justify-between items-center bg-white"><h3 class="text-lg font-bold text-gray-800" id="modal-titulo">Galería</h3><button onclick="cerrarModalGaleria()" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button></div>
-      <div class="p-4 bg-gray-50 flex gap-4 border-b shrink-0 items-center justify-between"><select id="modal-select-cat" class="border border-gray-300 rounded px-3 py-2 text-sm w-48 bg-white focus:ring-blue-500"></select><button onclick="abrirWidgetGaleria()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Subir Archivos</button></div>
+      <div class="p-4 bg-blue-50 flex gap-4 border-b shrink-0 items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-semibold text-blue-900">Define el tipo antes de subir:</span>
+          <select id="modal-select-cat" class="border border-blue-200 rounded px-3 py-1.5 text-sm w-48 bg-white focus:ring-blue-500"><option value="">Seleccionar...</option></select>
+        </div>
+        <button onclick="abrirWidgetGaleria()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Subir Archivos</button>
+      </div>
       <div class="p-6 flex-1 overflow-y-auto bg-white"><div id="modal-grid-fotos" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-4"></div></div>
     </div>
   </div>
 
+  <!-- MODAL: EDITAR PRODUCTO -->
   <div id="modal-editar" class="fixed inset-0 bg-gray-900/60 z-[70] hidden flex justify-center items-center backdrop-blur-sm">
     <div class="bg-white rounded-xl shadow-xl w-96 flex flex-col overflow-hidden">
       <div class="px-6 py-4 border-b bg-white flex justify-between items-center"><h3 class="font-bold text-gray-800">Editar Producto</h3><button onclick="cerrarModalEditar()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button></div>
-      <div class="p-6 space-y-4"><input type="hidden" id="ed-sku"><div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" id="ed-nombre" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Stock</label><input type="number" id="ed-stock" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div></div>
+      <div class="p-6 space-y-4">
+        <input type="hidden" id="ed-sku">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" id="ed-nombre" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+          <select id="ed-estado" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm bg-white">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+            <option value="Borrador">Borrador</option>
+          </select>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Stock</label><input type="number" id="ed-stock" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
+      </div>
       <div class="px-6 py-4 bg-gray-50 border-t flex justify-end gap-2"><button onclick="cerrarModalEditar()" class="px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">Cancelar</button><button onclick="guardarEdicionProducto()" class="px-4 py-2 bg-blue-600 text-white rounded shadow-sm text-sm hover:bg-blue-700">Guardar</button></div>
     </div>
   </div>
@@ -245,6 +321,22 @@
 
     function esVideo(url) { return url.includes('/video/upload/'); }
     function obtenerThumbnail(url) { return esVideo(url) ? url.replace(/\.[^/.]+$/, ".jpg") : url; }
+    
+    // Función central para reproducir videos en los modales
+    function reproducirVideo(url) {
+      const modal = document.getElementById('modal-video');
+      const reproductor = document.getElementById('video-player');
+      reproductor.src = url;
+      modal.classList.replace('hidden', 'flex');
+      reproductor.play();
+    }
+    function cerrarVideo() {
+      const modal = document.getElementById('modal-video');
+      const reproductor = document.getElementById('video-player');
+      reproductor.pause();
+      reproductor.src = "";
+      modal.classList.replace('flex', 'hidden');
+    }
 
     function showToast(mensaje, tipo = 'success') {
       const container = document.getElementById('toast-container');
@@ -257,11 +349,37 @@
       setTimeout(() => { toast.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => toast.remove(), 300); }, 3000);
     }
 
+    // LISTENER DEL SELECTOR DE EMOJIS
+    document.getElementById('btn-emoji').addEventListener('click', () => {
+      document.getElementById('emoji-popup').classList.toggle('hidden');
+    });
+    document.querySelector('emoji-picker').addEventListener('emoji-click', event => {
+        const textarea = document.getElementById('inp-pie-foto'); 
+        const start = textarea.selectionStart; 
+        const text = textarea.value;
+        textarea.value = text.substring(0, start) + event.detail.unicode + text.substring(textarea.selectionEnd);
+        textarea.selectionStart = textarea.selectionEnd = start + event.detail.unicode.length; 
+        textarea.focus();
+        document.getElementById('emoji-popup').classList.add('hidden');
+    });
+    // Ocultar si se clickea afuera
+    document.addEventListener('click', (e) => {
+        const popup = document.getElementById('emoji-popup'); 
+        const btn = document.getElementById('btn-emoji');
+        if(!popup.contains(e.target) && !btn.contains(e.target) && !popup.classList.contains('hidden')) {
+          popup.classList.add('hidden');
+        }
+    });
+
     window.onload = () => { google.script.run.withSuccessHandler(initApp).withFailureHandler(e => showToast(e, 'error')).getInitialData(); };
 
     function initApp(data) {
       state = {...state, ...data};
       if (state.categorias.length > 0) state.categoriaActivaManager = state.categorias[0].id;
+      
+      // SETEAR EL SELECTOR DE DISTRIBUCIÓN AL CARGAR
+      document.getElementById('sel-orden-cola').value = (state.config.CiclicoOK === '0') ? 'aleatorio' : 'ciclico';
+      
       renderTablaProductos(); renderTablaCola(); actualizarDatalistManager(); renderizarTabsManager(); poblarSelectCategoriasModales(); initSortable();
       document.getElementById('inp-cloud-name').value = state.config.CLOUDINARY_CLOUD_NAME || '';
       document.getElementById('inp-upload-preset').value = state.config.CLOUDINARY_UPLOAD_PRESET || '';
@@ -290,10 +408,12 @@
     function renderTablaProductos() {
       const tbody = document.getElementById('tabla-productos'); tbody.innerHTML = '';
       state.productos.forEach(p => {
+        const estadoColor = p.estado === 'Activo' ? 'bg-green-100 text-green-700' : (p.estado === 'Inactivo' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700');
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${p.sku}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${p.nombre}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><span class="px-2.5 py-1 rounded-md text-xs font-semibold ${estadoColor}">${p.estado}</span></td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-semibold">${p.stock}</td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
             <button onclick="abrirModalGaleria('${p.sku}')" class="bg-blue-50 text-blue-600 p-2 rounded hover:bg-blue-100 mr-2" title="Galería"><i class="fa-regular fa-images"></i></button>
@@ -305,46 +425,35 @@
       });
     }
 
-    // ----------------------------------------------------------------------
-    // RENDEREIZADO DE LA COLA ACTUALIZADO CON FOTOS (MOCKUP DEL USUARIO)
-    // ----------------------------------------------------------------------
     function renderTablaCola() {
       const tbody = document.getElementById('tabla-cola');
       tbody.innerHTML = '';
       if(state.cola.length === 0) {
-         tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-400">No hay publicaciones en la cola.</td></tr>';
+         tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-sm text-gray-400">No hay publicaciones en la cola.</td></tr>';
          return;
       }
       state.cola.forEach(c => {
-        const tr = document.createElement('tr');
-        tr.className = "group"; // Para efectos hover si se desea
-        
-        // Buscar el nombre del producto en el state actual
         const prod = state.productos.find(p => p.sku === c.sku);
         const nombreProd = prod ? prod.nombre : '-';
         
-        // Generar la galería de miniaturas
         const urls = c.urls ? c.urls.split(' * ') : [];
         let htmlThumbs = '<div class="flex flex-wrap items-center gap-2">';
         urls.forEach(url => {
            if(!url) return;
            const src = obtenerThumbnail(url);
-           const iconPlay = esVideo(url) ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-circle-play text-white/80 text-xl drop-shadow-md"></i></div>' : '';
-           
-           // Estilos basados en tu mockup: Bordes azules y redondeados
-           htmlThumbs += `
-             <div class="w-14 h-14 bg-blue-50/30 border border-blue-200 rounded-lg p-0.5 flex items-center justify-center relative overflow-hidden shrink-0">
-                <img src="${src}" class="w-full h-full object-cover rounded-md pointer-events-none">
-                ${iconPlay}
-             </div>
-           `;
+           const iconPlay = esVideo(url) ? `<div onclick="reproducirVideo('${url}')" class="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/10 hover:bg-black/30 transition-colors"><i class="fa-solid fa-circle-play text-white/90 text-xl drop-shadow-md"></i></div>` : '';
+           htmlThumbs += `<div class="w-14 h-14 bg-blue-50/30 border border-blue-200 rounded-lg p-0.5 flex items-center justify-center relative overflow-hidden shrink-0"><img src="${src}" class="w-full h-full object-cover rounded-md pointer-events-none">${iconPlay}</div>`;
         });
         htmlThumbs += '</div>';
 
+        const pieTruncado = c.pieFoto ? (c.pieFoto.length > 30 ? c.pieFoto.substring(0, 30) + '...' : c.pieFoto) : '<i class="text-gray-400 text-xs">Generado por IA</i>';
+
+        const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">${c.sku}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">${nombreProd}</td>
           <td class="px-6 py-4 text-sm">${htmlThumbs}</td>
+          <td class="px-6 py-4 text-sm text-gray-600" title="${c.pieFoto}">${pieTruncado}</td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
             <button onclick="eliminarPostFront('${c.id}')" class="bg-red-50 text-red-500 p-2 rounded-md hover:bg-red-100 transition-colors opacity-80 hover:opacity-100" title="Eliminar Publicación"><i class="fa-solid fa-trash"></i></button>
           </td>
@@ -353,20 +462,88 @@
       });
     }
 
+    // ELIMINACIÓN EN CASCADA
+    function eliminarProductoFront(sku) {
+      if(!confirm(`⚠️ ATENCIÓN: Al eliminar el producto ${sku} se borrarán también TODOS sus archivos multimedia y las publicaciones pendientes en la cola.\n\n¿Estás seguro de continuar?`)) return;
+      document.getElementById('loader').classList.remove('hidden');
+      
+      google.script.run.withSuccessHandler(skuEliminado => { 
+        // Actualizamos estado de UI
+        state.productos = state.productos.filter(p => p.sku !== skuEliminado); 
+        state.medios = state.medios.filter(m => m.sku !== skuEliminado);
+        state.cola = state.cola.filter(c => c.sku !== skuEliminado);
+        
+        renderTablaProductos(); 
+        renderTablaCola();
+        actualizarDatalistManager(); 
+        
+        if(state.productoActivoManager === skuEliminado) { 
+          state.productoActivoManager = null; 
+          document.getElementById('input-producto').value=''; 
+          renderizarBibliotecaManager(); 
+        } 
+        document.getElementById('loader').classList.add('hidden'); 
+        showToast("Producto y sus datos asociados eliminados"); 
+      }).eliminarProducto(sku);
+    }
+
+    function aplicarOrdenCola() {
+       const modo = document.getElementById('sel-orden-cola').value;
+       document.getElementById('loader').classList.remove('hidden');
+       
+       google.script.run
+         .withSuccessHandler(nuevaCola => {
+             // Actualizamos el estado local
+             state.config.CiclicoOK = (modo === 'aleatorio') ? '0' : '1';
+             state.cola = nuevaCola;
+             renderTablaCola();
+             document.getElementById('loader').classList.add('hidden');
+             showToast(`Distribución global actualizada a ${modo}.`);
+         })
+         .withFailureHandler(err => {
+             document.getElementById('loader').classList.add('hidden');
+             showToast("Error al aplicar el orden en la base de datos.", "error");
+         })
+         .guardarModoDistribucion(modo);
+    }
+
+    function guardarPost() {
+      const items = document.getElementById('carousel-zone').querySelectorAll('.img-card');
+      if (items.length === 0) return showToast("Agrega contenido a la zona de edición.", "error");
+      if (items.length > 10) return showToast("Instagram permite máximo 10 archivos por carrusel.", "error");
+      
+      const btn = document.getElementById('btn-guardar'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+      
+      const payload = { 
+        sku: state.productoActivoManager, 
+        urls: Array.from(items).map(i => i.getAttribute('data-url')),
+        pieFoto: document.getElementById('inp-pie-foto').value.trim()
+      };
+
+      // Como la cola se reordena y devuelve entera, actualizamos el array en lugar de hacer un push.
+      google.script.run.withSuccessHandler(nuevaCola => {
+        state.cola = nuevaCola; 
+        renderTablaCola(); 
+        showToast("Publicación encolada correctamente"); 
+        limpiarCarrusel();
+        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar a Make';
+      }).enviarAColaPublicacion(payload);
+    }
+
     function eliminarPostFront(idPost) {
        if(!confirm("¿Estás seguro de eliminar esta publicación? No se enviará a Make.")) return;
        document.getElementById('loader').classList.remove('hidden');
-       google.script.run.withSuccessHandler(idBorrado => {
-         state.cola = state.cola.filter(c => c.id !== idBorrado);
-         renderTablaCola();
-         document.getElementById('loader').classList.add('hidden');
-         showToast("Publicación eliminada de la cola");
-       }).withFailureHandler(err => {
-         document.getElementById('loader').classList.add('hidden');
-         showToast("Error al eliminar", "error");
+       
+       google.script.run.withSuccessHandler(nuevaCola => { 
+         state.cola = nuevaCola; 
+         renderTablaCola(); 
+         document.getElementById('loader').classList.add('hidden'); 
+         showToast("Publicación eliminada de la cola"); 
+       }).withFailureHandler(err => { 
+         document.getElementById('loader').classList.add('hidden'); 
+         showToast("Error al eliminar", "error"); 
        }).eliminarPostCola(idPost);
     }
-    // ----------------------------------------------------------------------
 
     function poblarSelectCategoriasModales() {
       const selNP = document.getElementById('np-select-cat'); const selGal = document.getElementById('modal-select-cat');
@@ -374,7 +551,7 @@
     }
 
     function abrirModalNuevoProducto() {
-      imagenesNuevasTemp = []; document.getElementById('np-sku').value = ''; document.getElementById('np-nombre').value = ''; document.getElementById('np-stock').value = '0'; document.getElementById('np-select-cat').value = '';
+      imagenesNuevasTemp = []; document.getElementById('np-sku').value = ''; document.getElementById('np-nombre').value = ''; document.getElementById('np-stock').value = '0'; document.getElementById('np-estado').value = 'Activo'; document.getElementById('np-select-cat').value = '';
       renderizarFotosNuevoProducto(); document.getElementById('modal-nuevo-producto').classList.remove('hidden');
     }
     function cerrarModalNuevoProducto() { document.getElementById('modal-nuevo-producto').classList.add('hidden'); }
@@ -386,8 +563,8 @@
         msg.style.display = 'none';
         imagenesNuevasTemp.forEach((obj, idx) => {
           const div = document.createElement('div'); div.className = 'np-foto-temp bg-white rounded border p-1 aspect-square relative group overflow-hidden';
-          const src = obtenerThumbnail(obj.url); const iconPlay = esVideo(obj.url) ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-circle-play text-white/80 text-3xl drop-shadow-md"></i></div>' : '';
-          div.innerHTML = `<img src="${src}" class="w-full h-full object-cover rounded">${iconPlay}<span class="absolute bottom-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded">${obj.categoria}</span><button onclick="borrarFotoTemp(${idx})" class="absolute top-1 right-1 bg-red-600/90 text-white rounded p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-trash"></i></button>`;
+          const src = obtenerThumbnail(obj.url); const iconPlay = esVideo(obj.url) ? `<div onclick="reproducirVideo('${obj.url}')" class="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-black/20 transition-colors"><i class="fa-solid fa-circle-play text-white/90 text-3xl drop-shadow-md"></i></div>` : '';
+          div.innerHTML = `<img src="${src}" class="w-full h-full object-cover rounded">${iconPlay}<span class="absolute bottom-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none">${obj.categoria}</span><button onclick="borrarFotoTemp(${idx})" class="absolute top-1 right-1 bg-red-600/90 text-white rounded p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-trash"></i></button>`;
           grid.appendChild(div);
         });
       }
@@ -403,36 +580,37 @@
     }
 
     function guardarNuevoProducto() {
-      const sku = document.getElementById('np-sku').value.trim(); const nombre = document.getElementById('np-nombre').value.trim(); const stock = document.getElementById('np-stock').value || 0;
+      const sku = document.getElementById('np-sku').value.trim(); const nombre = document.getElementById('np-nombre').value.trim(); const stock = document.getElementById('np-stock').value || 0; const estado = document.getElementById('np-estado').value;
       if(!sku || !nombre) return showToast("SKU y Nombre son obligatorios", "error");
       const btn = document.getElementById('btn-guardar-nuevo'); btn.disabled = true; btn.innerText = "Guardando...";
       google.script.run
         .withSuccessHandler(res => { state.productos.push(res.producto); state.medios = state.medios.concat(res.mediosNuevos); renderTablaProductos(); actualizarDatalistManager(); cerrarModalNuevoProducto(); showToast("Producto creado exitosamente"); btn.disabled = false; btn.innerText = "Guardar Producto Final"; })
         .withFailureHandler(err => { showToast(err.message || "Error al crear", "error"); btn.disabled = false; btn.innerText = "Guardar Producto Final"; })
-        .crearProductoConImagenes({ sku: sku, nombre: nombre, stock: stock, imagenes: imagenesNuevasTemp });
+        .crearProductoConImagenes({ sku: sku, nombre: nombre, stock: stock, estado: estado, imagenes: imagenesNuevasTemp });
     }
 
     function abrirModalEditar(sku) {
       const prod = state.productos.find(p => p.sku === sku);
-      document.getElementById('ed-sku').value = prod.sku; document.getElementById('ed-nombre').value = prod.nombre; document.getElementById('ed-stock').value = prod.stock;
+      document.getElementById('ed-sku').value = prod.sku; document.getElementById('ed-nombre').value = prod.nombre; document.getElementById('ed-stock').value = prod.stock; document.getElementById('ed-estado').value = prod.estado || 'Activo';
       document.getElementById('modal-editar').classList.remove('hidden');
     }
     function cerrarModalEditar() { document.getElementById('modal-editar').classList.add('hidden'); }
     function guardarEdicionProducto() {
-      const sku = document.getElementById('ed-sku').value; const nom = document.getElementById('ed-nombre').value; const stk = document.getElementById('ed-stock').value;
+      const sku = document.getElementById('ed-sku').value; const nom = document.getElementById('ed-nombre').value; const stk = document.getElementById('ed-stock').value; const est = document.getElementById('ed-estado').value;
       document.getElementById('loader').classList.remove('hidden');
-      google.script.run.withSuccessHandler(res => { const prod = state.productos.find(p => p.sku === sku); prod.nombre = res.nombre; prod.stock = res.stock; renderTablaProductos(); actualizarDatalistManager(); cerrarModalEditar(); document.getElementById('loader').classList.add('hidden'); showToast("Producto actualizado"); }).actualizarProducto(sku, nom, stk);
+      google.script.run.withSuccessHandler(res => { const prod = state.productos.find(p => p.sku === sku); prod.nombre = res.nombre; prod.stock = res.stock; prod.estado = res.estado; renderTablaProductos(); actualizarDatalistManager(); cerrarModalEditar(); document.getElementById('loader').classList.add('hidden'); showToast("Producto actualizado"); }).actualizarProducto(sku, nom, stk, est);
     }
 
-    function eliminarProductoFront(sku) {
-      if(!confirm(`¿Eliminar el SKU ${sku} de la base de datos?`)) return;
-      document.getElementById('loader').classList.remove('hidden');
-      google.script.run.withSuccessHandler(skuEliminado => { state.productos = state.productos.filter(p => p.sku !== skuEliminado); renderTablaProductos(); actualizarDatalistManager(); if(state.productoActivoManager === skuEliminado) { state.productoActivoManager = null; document.getElementById('input-producto').value=''; renderizarBibliotecaManager(); } document.getElementById('loader').classList.add('hidden'); showToast("Producto eliminado"); }).eliminarProducto(sku);
+    function abrirModalGaleria(sku) { 
+      state.productoActivoModal = sku; document.getElementById('modal-titulo').textContent = `Galería: ${sku}`; document.getElementById('modal-select-cat').value = ''; renderizarFotosModal(); document.getElementById('modal-galeria').classList.remove('hidden'); 
     }
-
-    function abrirModalGaleria(sku) { state.productoActivoModal = sku; document.getElementById('modal-titulo').textContent = `Galería: ${sku}`; renderizarFotosModal(); document.getElementById('modal-galeria').classList.remove('hidden'); }
     function cerrarModalGaleria() { document.getElementById('modal-galeria').classList.add('hidden'); state.productoActivoModal = null; renderizarBibliotecaManager(); }
-    function abrirWidgetGaleria() { if(!cloudWidget) return showToast("Falta configuración de Cloudinary", "error"); contextoSubida = 'galeria'; cloudWidget.open(); }
+    
+    function abrirWidgetGaleria() { 
+      if(!document.getElementById('modal-select-cat').value) return showToast("Selecciona el tipo de medio antes de subir", "error");
+      if(!cloudWidget) return showToast("Falta configuración de Cloudinary", "error"); 
+      contextoSubida = 'galeria'; cloudWidget.open(); 
+    }
 
     function renderizarFotosModal() {
       const grid = document.getElementById('modal-grid-fotos'); grid.innerHTML = '';
@@ -440,8 +618,8 @@
       if(fotos.length === 0) return grid.innerHTML = '<div class="col-span-full text-center text-gray-500 mt-10">No hay archivos registrados.</div>';
       fotos.forEach(foto => {
         const div = document.createElement('div'); div.className = 'bg-white rounded border shadow-sm p-1 aspect-square relative group overflow-hidden';
-        const src = obtenerThumbnail(foto.url); const iconPlay = esVideo(foto.url) ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-circle-play text-white/80 text-3xl drop-shadow-md"></i></div>' : '';
-        div.innerHTML = `<img src="${src}" class="w-full h-full object-cover rounded">${iconPlay}<span class="absolute top-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded">${foto.categoria}</span><button onclick="eliminarMedioFront('${foto.id}')" class="absolute inset-0 bg-red-600/90 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded"><i class="fa-solid fa-trash text-xl"></i></button>`;
+        const src = obtenerThumbnail(foto.url); const iconPlay = esVideo(foto.url) ? `<div onclick="reproducirVideo('${foto.url}')" class="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-black/20 transition-colors"><i class="fa-solid fa-circle-play text-white/90 text-3xl drop-shadow-md"></i></div>` : '';
+        div.innerHTML = `<img src="${src}" class="w-full h-full object-cover rounded pointer-events-none">${iconPlay}<span class="absolute top-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none">${foto.categoria}</span><button onclick="eliminarMedioFront('${foto.id}')" class="absolute inset-0 bg-red-600/90 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded"><i class="fa-solid fa-trash text-xl"></i></button>`;
         grid.appendChild(div);
       });
     }
@@ -488,14 +666,14 @@
       if (fotos.length === 0) return grid.innerHTML = '<div class="col-span-full text-center text-gray-400 text-sm mt-10">No hay archivos en esta pestaña.</div>';
       fotos.forEach(foto => {
         const div = document.createElement('div'); div.className = 'img-card drag-card bg-white rounded-lg border border-gray-200 p-1 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 flex items-center justify-center relative shadow-sm hover:shadow-md overflow-hidden'; div.setAttribute('data-url', foto.url);
-        const src = obtenerThumbnail(foto.url); const iconPlay = esVideo(foto.url) ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-circle-play text-white/80 text-2xl drop-shadow-md"></i></div>' : '';
+        const src = obtenerThumbnail(foto.url); const iconPlay = esVideo(foto.url) ? `<div onclick="reproducirVideo('${foto.url}')" class="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-black/20 transition-colors z-10"><i class="fa-solid fa-circle-play text-white/90 text-2xl drop-shadow-md"></i></div>` : '';
         div.innerHTML = `<img src="${src}" class="max-w-full max-h-full object-cover pointer-events-none rounded">${iconPlay}`;
-        div.ondblclick = function() { if(this.parentElement.id === 'carousel-zone') { this.remove(); actualizarContador(); } }; grid.appendChild(div);
+        div.ondblclick = function(e) { if(e.target.tagName !== 'DIV' && this.parentElement.id === 'carousel-zone') { this.remove(); actualizarContador(); } }; grid.appendChild(div);
       });
     }
 
     function initSortable() {
-      sortableLibrary = new Sortable(document.getElementById('library-grid'), { group: { name: 'shared', pull: 'clone', put: false }, animation: 150, sort: false });
+      sortableLibrary = new Sortable(document.getElementById('library-grid'), { group: { name: 'shared', pull: 'clone', put: false }, animation: 150, sort: false, filter: '.fa-circle-play' });
       sortableCarousel = new Sortable(document.getElementById('carousel-zone'), { group: { name: 'shared', pull: false, put: true }, animation: 150, onAdd: actualizarContador, onUpdate: actualizarContador });
     }
 
@@ -503,18 +681,56 @@
       const items = document.getElementById('carousel-zone').querySelectorAll('.img-card'); document.getElementById('counter').textContent = `${items.length} items`; document.getElementById('empty-carousel-msg').style.display = items.length > 0 ? 'none' : 'block';
     }
 
-    function limpiarCarrusel() { document.getElementById('carousel-zone').querySelectorAll('.img-card').forEach(el => el.remove()); actualizarContador(); }
+    function limpiarCarrusel() { document.getElementById('carousel-zone').querySelectorAll('.img-card').forEach(el => el.remove()); actualizarContador(); document.getElementById('inp-pie-foto').value = ''; }
 
-    function guardarPost() {
-      const items = document.getElementById('carousel-zone').querySelectorAll('.img-card');
-      if (items.length === 0) return showToast("Agrega contenido a la zona de edición.", "error");
-      if (items.length > 10) return showToast("Instagram permite máximo 10 archivos por carrusel.", "error");
-      const btn = document.getElementById('btn-guardar'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
-      const payload = { sku: state.productoActivoManager, urls: Array.from(items).map(i => i.getAttribute('data-url')) };
-      google.script.run.withSuccessHandler(nuevoPost => {
-        state.cola.unshift(nuevoPost); renderTablaCola(); showToast("Publicación encolada correctamente"); limpiarCarrusel();
-        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar a Make';
-      }).enviarAColaPublicacion(payload);
+    function generarAutomatizacion() {
+      if(!state.productoActivoManager) return showToast("Selecciona un producto primero", "error");
+      const mediosProd = state.medios.filter(m => m.sku === state.productoActivoManager);
+      if(mediosProd.length === 0) return showToast("El producto seleccionado no tiene archivos.", "error");
+      
+      limpiarCarrusel(); 
+      
+      const branded = mediosProd.filter(m => m.categoria.toUpperCase().includes('BRAND'));
+      const producto = mediosProd.filter(m => m.categoria.toUpperCase().includes('PROD'));
+      const modelo = mediosProd.filter(m => m.categoria.toUpperCase().includes('MOD'));
+      
+      const pattern = Math.floor(Math.random() * 3);
+      let seleccion = [];
+      const getRandom = (arr, n) => arr.sort(() => 0.5 - Math.random()).slice(0, n);
+      
+      if (pattern === 0) { 
+          if(branded.length === 0) showToast("Aviso: Completando patrón con fotos de Producto.", "info");
+          seleccion = [
+              ...getRandom(modelo.length ? modelo : producto, 1),
+              ...getRandom(producto.length ? producto : mediosProd, 2),
+              ...getRandom(branded.length ? branded : (producto.length ? producto : mediosProd), 1)
+          ];
+      } else if (pattern === 1) { 
+          seleccion = [
+              ...getRandom(producto.length ? producto : mediosProd, 3),
+              ...getRandom(modelo.length ? modelo : (producto.length ? producto : mediosProd), 1)
+          ];
+      } else { 
+          const pool = modelo.length ? modelo : (producto.length ? producto : mediosProd);
+          seleccion = getRandom(pool, 1);
+      }
+      
+      const uniqueSeleccion = [...new Map(seleccion.map(item => [item.url, item])).values()];
+      
+      const zone = document.getElementById('carousel-zone');
+      uniqueSeleccion.forEach(foto => {
+          const div = document.createElement('div');
+          div.className = 'img-card drag-card bg-white rounded-lg border border-gray-200 p-1 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 flex items-center justify-center relative shadow-sm hover:shadow-md overflow-hidden'; 
+          div.setAttribute('data-url', foto.url);
+          const src = obtenerThumbnail(foto.url); 
+          const iconPlay = esVideo(foto.url) ? `<div onclick="reproducirVideo('${foto.url}')" class="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-black/20 transition-colors z-10"><i class="fa-solid fa-circle-play text-white/90 text-2xl drop-shadow-md"></i></div>` : '';
+          div.innerHTML = `<img src="${src}" class="max-w-full max-h-full object-cover pointer-events-none rounded">${iconPlay}`;
+          div.ondblclick = function(e) { if(e.target.tagName !== 'DIV' && this.parentElement.id === 'carousel-zone') { this.remove(); actualizarContador(); } }; 
+          zone.appendChild(div);
+      });
+      actualizarContador();
+      const nombresPatrones = ["Lookbook", "Catálogo Comercial", "Impacto Simple"];
+      showToast(`Generado automáticamente (Patrón: ${nombresPatrones[pattern]})`);
     }
 
     function guardarConfig() {
