@@ -2,14 +2,15 @@
 <html>
 <head>
   <base target="_top">
+  <meta charset="utf-8">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
-  <!-- LIBRERIA EMOJI PICKER -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
   <style>
-    emoji-picker { width: 320px;  height: 320px;}
+    emoji-picker { width: 320px; height: 320px; }
     .nav-item { cursor: pointer; transition: all 0.2s; }
     .nav-item.active { background-color: #eff6ff; color: #3b82f6; font-weight: 600; border-left: 4px solid #3b82f6; }
     .nav-item:not(.active) { border-left: 4px solid transparent; }
@@ -21,58 +22,411 @@
     #carousel-zone { min-height: 150px; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    
     @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     @keyframes fadeOut { to { opacity: 0; } }
     .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
     .toast-exit { animation: fadeOut 0.3s ease-out forwards; }
+
+    /* ---------- Botón "Automatizar con IA" ---------- */
+    .btn-magia { position: relative; overflow: hidden; background: linear-gradient(120deg, #6366f1, #d946ef, #f59e0b, #6366f1); background-size: 300% 100%; animation: magiaFlujo 6s linear infinite; }
+    .btn-magia:hover { box-shadow: 0 6px 18px rgba(139,92,246,.45); transform: translateY(-1px); }
+    .btn-magia::after { content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); transform: skewX(-20deg); animation: magiaBrillo 3.2s ease-in-out infinite; }
+    .btn-magia[disabled] { cursor: progress; }
+    @keyframes magiaFlujo { to { background-position: 300% 0; } }
+    @keyframes magiaBrillo { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+    @keyframes aparecerItem { from { opacity: 0; transform: scale(.6) translateY(8px); } to { opacity: 1; transform: none; } }
+    .item-magia { animation: aparecerItem .35s ease-out both; }
+
+    /* Numeración automática de los medios (orden de publicación) */
+    #carousel-zone, #ep-medios { counter-reset: orden; }
+    #carousel-zone .img-card::before, #ep-medios .ep-card::before {
+      counter-increment: orden; content: counter(orden);
+      position: absolute; top: 4px; left: 4px; z-index: 5; min-width: 18px; height: 18px; padding: 0 4px;
+      border-radius: 9999px; background: rgba(17,24,39,.85); color: #fff; font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; pointer-events: none;
+    }
+
+    /* Combo de artículos */
+    .combo-item:hover, .combo-item-activo { background-color: #eff6ff; }
+
+    /* Configuración: pestañas y tutoriales */
+    .cfg-tab { display: inline-flex; align-items: center; gap: .5rem; padding: .55rem 1rem; border-radius: .5rem; font-size: .875rem; font-weight: 600; color: #4b5563; background: #fff; border: 1px solid #e5e7eb; transition: all .15s; }
+    .cfg-tab:hover { background: #f9fafb; }
+    .cfg-tab.activo { background: #2563eb; color: #fff; border-color: #2563eb; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+    .tut-item summary { list-style: none; }
+    .tut-item summary::-webkit-details-marker { display: none; }
+    .tut-item[open] .tut-flecha { transform: rotate(180deg); }
+    .tut-flecha { transition: transform .2s; }
+
+    /* Guía interactiva */
+    #tour-fondo.tour-oscuro { background: rgba(20,8,34,.6); }
+    #tour-foco { box-shadow: 0 0 0 9999px rgba(20,8,34,.62); border: 2px solid rgba(255,255,255,.95); transition: left .25s ease, top .25s ease, width .25s ease, height .25s ease; }
+
+    /* Pantalla "¿Qué es esto?" */
+    .info-titulo { font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.02em; }
+    .info-num { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; margin-right: .6rem; border-radius: 9999px; background: #2a1240; color: #fff; font-size: .95rem; font-weight: 800; flex-shrink: 0; }
+    .hero-tile { transform-box: fill-box; transform-origin: center; animation: tileIn .45s cubic-bezier(.2,.9,.3,1.3) both; animation-delay: calc(var(--i) * 110ms + 250ms); }
+    @keyframes tileIn { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-magia, .btn-magia::after, .item-magia, .hero-tile { animation: none; }
+      #tour-foco { transition: none; }
+    }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 h-screen flex overflow-hidden font-sans">
 
-  <!-- CONTENEDOR TOASTS -->
-  <div id="toast-container" class="fixed top-5 right-5 z-[200] flex flex-col gap-3"></div>
+  <!-- TOASTS -->
+  <div id="toast-container" class="fixed top-5 right-5 z-[400] flex flex-col gap-3"></div>
 
   <!-- LOADER -->
-  <div id="loader" class="fixed inset-0 bg-white/90 z-[100] flex flex-col items-center justify-center">
+  <div id="loader" class="fixed inset-0 bg-white/90 z-[350] flex flex-col items-center justify-center">
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
     <p class="text-gray-600 font-medium text-sm tracking-wide">Sincronizando Workspace...</p>
   </div>
 
-  <!-- MODAL DE REPRODUCTOR DE VIDEO -->
+  <!-- MODAL: REPRODUCTOR DE VIDEO -->
   <div id="modal-video" class="fixed inset-0 bg-black/95 z-[250] hidden flex-col justify-center items-center backdrop-blur-sm">
-    <button onclick="cerrarVideo()" class="absolute top-6 right-6 text-white/70 hover:text-white text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
+    <button type="button" data-action="cerrar-video" class="absolute top-6 right-6 text-white/70 hover:text-white text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
     <video id="video-player" controls class="max-w-4xl max-h-[85vh] rounded-lg shadow-2xl bg-black outline-none"></video>
   </div>
+
+  <!-- ======================================================================= -->
+  <!-- AUTENTICACIÓN: login / registro / estado de cuenta                       -->
+  <!-- ======================================================================= -->
+  <div id="auth-overlay" class="fixed inset-0 bg-gray-50 z-[300] flex items-center justify-center p-4 overflow-auto">
+    <button type="button" id="btn-que-es-top" class="absolute top-4 right-4 inline-flex items-center gap-2 text-sm font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-3 py-1.5 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500">
+      <i class="fa-regular fa-circle-question"></i> ¿Qué es esto?
+    </button>
+    <div class="w-full max-w-md">
+      <div class="text-center mb-6">
+        <div class="bg-blue-600 text-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mx-auto mb-3">
+          <i class="fa-solid fa-layer-group text-lg"></i>
+        </div>
+        <h1 class="text-xl font-bold text-gray-900">Auto Manager</h1>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+
+        <!-- LOGIN -->
+        <div id="auth-login">
+          <div class="flex gap-4 mb-5 border-b">
+            <button type="button" class="pb-2 px-1 text-sm tab-active" disabled>Iniciar sesión</button>
+            <button type="button" id="tab-ir-registro" class="pb-2 px-1 text-sm tab-inactive hover:text-gray-900">Registrarme</button>
+          </div>
+          <form id="form-login" class="space-y-3" novalidate>
+            <div>
+              <label for="login-email" class="block text-xs font-semibold text-gray-700 mb-1">Email</label>
+              <input type="email" id="login-email" autocomplete="username" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500">
+            </div>
+            <div>
+              <label for="login-password" class="block text-xs font-semibold text-gray-700 mb-1">Contraseña</label>
+              <div class="relative">
+                <input type="password" id="login-password" autocomplete="current-password" class="w-full pl-3 pr-10 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500">
+                <button type="button" data-toggle-pass="login-password" aria-label="Mostrar contraseña" aria-pressed="false" class="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-blue-600"><i class="fa-regular fa-eye"></i></button>
+              </div>
+            </div>
+            <div class="flex flex-col gap-1.5 pt-1">
+              <label class="inline-flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                <input type="checkbox" id="login-recordar" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"> Recordar usuario
+              </label>
+              <label class="inline-flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                <input type="checkbox" id="login-mantener" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"> Mantener la sesión iniciada en este dispositivo
+              </label>
+            </div>
+            <p id="login-error" class="text-xs text-red-600 hidden"></p>
+            <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md text-sm font-medium mt-2 transition-colors">Iniciar sesión</button>
+          </form>
+        </div>
+
+        <!-- REGISTRO -->
+        <div id="auth-registro" class="hidden">
+          <div class="flex gap-4 mb-5 border-b">
+            <button type="button" id="tab-ir-login" class="pb-2 px-1 text-sm tab-inactive hover:text-gray-900">Iniciar sesión</button>
+            <button type="button" class="pb-2 px-1 text-sm tab-active" disabled>Registrarme</button>
+          </div>
+          <form id="form-registro" class="space-y-3" novalidate>
+            <div>
+              <label for="reg-nombre" class="block text-xs font-semibold text-gray-700 mb-1">Nombre del negocio</label>
+              <input type="text" id="reg-nombre" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500">
+            </div>
+            <div>
+              <label for="reg-email" class="block text-xs font-semibold text-gray-700 mb-1">Email</label>
+              <input type="email" id="reg-email" autocomplete="username" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500">
+            </div>
+            <div>
+              <label for="reg-telefono" class="block text-xs font-semibold text-gray-700 mb-1">Teléfono</label>
+              <input type="tel" id="reg-telefono" placeholder="Ej: 5491122334455" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500">
+            </div>
+            <div>
+              <label for="reg-password" class="block text-xs font-semibold text-gray-700 mb-1">Contraseña (mínimo 6 caracteres)</label>
+              <div class="relative">
+                <input type="password" id="reg-password" autocomplete="new-password" class="w-full pl-3 pr-10 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500">
+                <button type="button" data-toggle-pass="reg-password" aria-label="Mostrar contraseña" aria-pressed="false" class="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-blue-600"><i class="fa-regular fa-eye"></i></button>
+              </div>
+            </div>
+            <div>
+              <label for="reg-password2" class="block text-xs font-semibold text-gray-700 mb-1">Repetir contraseña</label>
+              <div class="relative">
+                <input type="password" id="reg-password2" autocomplete="new-password" class="w-full pl-3 pr-10 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500">
+                <button type="button" data-toggle-pass="reg-password2" aria-label="Mostrar contraseña" aria-pressed="false" class="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-blue-600"><i class="fa-regular fa-eye"></i></button>
+              </div>
+            </div>
+            <p id="registro-error" class="text-xs text-red-600 hidden"></p>
+            <button type="submit" id="btn-registro" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md text-sm font-medium mt-2 transition-colors">Crear cuenta</button>
+          </form>
+        </div>
+
+        <!-- ESTADO DE CUENTA (Pendiente / Suspendido) -->
+        <div id="auth-estado" class="hidden text-center">
+          <i id="auth-estado-icon" class="fa-solid fa-clock text-3xl text-orange-400 mb-3"></i>
+          <h3 id="auth-estado-titulo" class="font-bold text-gray-800 mb-2">Cuenta en revisión</h3>
+          <p id="auth-estado-mensaje" class="text-sm text-gray-500 mb-5"></p>
+          <a data-whatsapp href="#" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2 rounded-md text-sm font-medium mb-2 transition-colors">
+            <i class="fa-brands fa-whatsapp text-lg"></i> Chatear por WhatsApp
+          </a>
+          <button type="button" id="btn-volver-login" class="w-full text-xs text-gray-400 hover:text-gray-600 mt-2">Volver al inicio de sesión</button>
+        </div>
+
+      </div>
+
+      <div class="text-center mt-4 space-y-2">
+        <button type="button" id="btn-que-es" class="block mx-auto text-sm font-semibold text-violet-700 hover:text-violet-900 underline underline-offset-2">¿Qué es Auto Manager? Mirá cómo funciona</button>
+        <a data-whatsapp href="#" target="_blank" rel="noopener noreferrer" class="text-xs text-gray-400 hover:text-green-600 inline-flex items-center gap-1 transition-colors">
+          <i class="fa-brands fa-whatsapp"></i> ¿Necesitás ayuda? Escribinos
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- ¿QUÉ ES ESTO? (pantalla informativa, accesible desde el login)            -->
+  <!-- ======================================================================= -->
+  <div id="info-overlay" class="hidden fixed inset-0 z-[310] overflow-y-auto bg-[#faf7ff] text-slate-800">
+    <svg width="0" height="0" class="absolute" aria-hidden="true" focusable="false"><defs>
+      <path id="am-spark" d="M0,-10 C1.5,-3.5 3.5,-1.5 10,0 C3.5,1.5 1.5,3.5 0,10 C-1.5,3.5 -3.5,1.5 -10,0 C-3.5,-1.5 -1.5,-3.5 0,-10Z"/>
+    </defs></svg>
+
+    <!-- Portada -->
+    <section class="bg-[#2a1240] text-white">
+      <div class="max-w-6xl mx-auto px-5 md:px-10">
+        <div class="flex items-center justify-between py-5">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center"><i class="fa-solid fa-layer-group"></i></div>
+            <span class="font-bold tracking-tight">Auto Manager</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="btn-info-login" class="text-sm font-semibold px-4 py-2 rounded-lg border border-white/25 hover:bg-white/10 transition-colors">Ya tengo cuenta</button>
+            <button type="button" id="btn-info-cerrar" aria-label="Cerrar" class="w-9 h-9 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-8 items-center pt-6 pb-14 md:pb-20">
+          <div>
+            <h2 class="info-titulo text-4xl md:text-5xl leading-[1.05]">Subís las fotos. Tu Instagram se publica solo.</h2>
+            <p class="mt-5 text-lg text-white/80 max-w-md">Auto Manager arma los posts con tus fotos y videos, escribe los textos con inteligencia artificial y los publica en tu cuenta de Instagram, día tras día.</p>
+            <div class="mt-7 flex flex-wrap gap-3">
+              <button type="button" id="btn-info-registro" class="px-5 py-3 rounded-lg bg-[#ff7a3d] hover:bg-[#ff8d58] text-[#2a1240] font-bold transition-colors">Crear mi cuenta</button>
+              <a data-whatsapp href="#" target="_blank" rel="noopener noreferrer" class="px-5 py-3 rounded-lg border border-white/30 hover:bg-white/10 font-semibold inline-flex items-center gap-2 transition-colors"><i class="fa-brands fa-whatsapp"></i> Consultar por WhatsApp</a>
+            </div>
+          </div>
+          <!-- Ilustración: el celular que arma la grilla de Instagram -->
+          <div class="flex justify-center">
+            <svg viewBox="0 0 380 460" class="w-full max-w-sm" role="img" aria-label="Un celular donde la grilla de publicaciones se va completando sola">
+              <circle cx="190" cy="235" r="170" fill="#6c3de0" opacity=".35"/>
+              <circle cx="310" cy="80" r="58" fill="#d6249f" opacity=".35"/>
+              <rect x="95" y="30" width="190" height="390" rx="30" fill="#140822"/>
+              <rect x="103" y="38" width="174" height="374" rx="24" fill="#fff"/>
+              <rect x="160" y="44" width="60" height="8" rx="4" fill="#140822"/>
+              <circle cx="128" cy="82" r="14" fill="#ff7a3d"/>
+              <rect x="150" y="72" width="70" height="7" rx="3.5" fill="#2a1240"/>
+              <rect x="150" y="86" width="46" height="6" rx="3" fill="#cbbfe0"/>
+              <g>
+                <rect class="hero-tile" style="--i:0" x="106" y="112" width="52" height="52" rx="6" fill="#ffd9c2"/>
+                <circle class="hero-tile" style="--i:0" cx="132" cy="138" r="11" fill="#ff7a3d"/>
+                <rect class="hero-tile" style="--i:1" x="164" y="112" width="52" height="52" rx="6" fill="#e6d9ff"/>
+                <path class="hero-tile" style="--i:1" d="M176 156 L190 126 L204 156Z" fill="#6c3de0"/>
+                <rect class="hero-tile" style="--i:2" x="222" y="112" width="52" height="52" rx="6" fill="#c9f2e3"/>
+                <rect class="hero-tile" style="--i:2" x="234" y="124" width="28" height="28" rx="14" fill="#14b88a"/>
+                <rect class="hero-tile" style="--i:3" x="106" y="170" width="52" height="52" rx="6" fill="#ffb3d9"/>
+                <rect class="hero-tile" style="--i:3" x="118" y="182" width="28" height="6" rx="3" fill="#d6249f"/>
+                <rect class="hero-tile" style="--i:3" x="118" y="194" width="20" height="6" rx="3" fill="#d6249f"/>
+                <rect class="hero-tile" style="--i:4" x="164" y="170" width="52" height="52" rx="6" fill="#ff7a3d"/>
+                <rect class="hero-tile" style="--i:4" x="196" y="176" width="14" height="14" rx="3" fill="#fff" opacity=".9"/>
+                <rect class="hero-tile" style="--i:4" x="192" y="180" width="14" height="14" rx="3" fill="none" stroke="#2a1240" stroke-width="2"/>
+                <rect class="hero-tile" style="--i:5" x="222" y="170" width="52" height="52" rx="6" fill="#e6d9ff"/>
+                <circle class="hero-tile" style="--i:5" cx="248" cy="196" r="12" fill="none" stroke="#6c3de0" stroke-width="5"/>
+                <rect class="hero-tile" style="--i:6" x="106" y="228" width="52" height="52" rx="6" fill="#c9f2e3"/>
+                <path class="hero-tile" style="--i:6" d="M118 268 L132 240 L146 268Z" fill="#14b88a"/>
+                <rect class="hero-tile" style="--i:7" x="164" y="228" width="52" height="52" rx="6" fill="#ffd9c2"/>
+                <circle class="hero-tile" style="--i:7" cx="190" cy="254" r="12" fill="#d6249f"/>
+                <rect class="hero-tile" style="--i:8" x="222" y="228" width="52" height="52" rx="6" fill="#fff" stroke="#d6249f" stroke-width="2.5" stroke-dasharray="6 5"/>
+                <use class="hero-tile" style="--i:9" href="#am-spark" transform="translate(248 254) scale(1.6)" fill="#d6249f"/>
+              </g>
+              <path d="M116 306 C104 294 110 284 116 292 C122 284 128 294 116 306Z" fill="#d6249f"/>
+              <rect x="112" y="318" width="150" height="7" rx="3.5" fill="#2a1240"/>
+              <rect x="112" y="332" width="120" height="6" rx="3" fill="#cbbfe0"/>
+              <rect x="112" y="345" width="136" height="6" rx="3" fill="#cbbfe0"/>
+              <rect x="112" y="358" width="70" height="6" rx="3" fill="#d6249f"/>
+              <rect x="6" y="326" width="112" height="42" rx="21" fill="#fff"/>
+              <use href="#am-spark" transform="translate(27 347) scale(1.2)" fill="#d6249f"/>
+              <text x="42" y="352" font-size="12" font-weight="700" fill="#2a1240">Texto con IA</text>
+              <rect x="232" y="384" width="140" height="42" rx="21" fill="#14b88a"/>
+              <path d="M252 405 l6 6 l12 -12" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <text x="278" y="410" font-size="13" font-weight="700" fill="#fff">Publicado</text>
+              <use href="#am-spark" transform="translate(330 140) scale(1.5)" fill="#ffd9c2"/>
+              <use href="#am-spark" transform="translate(48 250) scale(1.1)" fill="#ff7a3d"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cómo funciona (es una secuencia: por eso van numerados) -->
+    <section class="max-w-5xl mx-auto px-5 md:px-10 py-14 md:py-20">
+      <h3 class="info-titulo text-3xl md:text-4xl mb-12">Así funciona, de tus fotos al feed</h3>
+      <ol class="space-y-14">
+        <li class="grid md:grid-cols-2 gap-8 items-center">
+          <div class="rounded-2xl bg-[#efe7ff] p-6">
+            <svg viewBox="0 0 260 180" class="w-full" role="img" aria-label="Una nube que recibe fotos">
+              <g fill="#6c3de0"><circle cx="100" cy="70" r="22"/><circle cx="130" cy="58" r="28"/><circle cx="162" cy="72" r="20"/><rect x="80" y="72" width="102" height="26" rx="13"/></g>
+              <path d="M130 90 V60 M117 72 L130 59 L143 72" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <rect x="52" y="122" width="48" height="48" rx="8" fill="#ffd9c2"/><circle cx="76" cy="146" r="10" fill="#ff7a3d"/>
+              <rect x="106" y="122" width="48" height="48" rx="8" fill="#ffb3d9"/><path d="M118 162 L130 136 L142 162Z" fill="#d6249f"/>
+              <rect x="160" y="122" width="48" height="48" rx="8" fill="#c9f2e3"/><rect x="172" y="134" width="24" height="24" rx="12" fill="#14b88a"/>
+              <use href="#am-spark" transform="translate(216 44) scale(1.3)" fill="#ff7a3d"/>
+            </svg>
+          </div>
+          <div>
+            <h4 class="info-titulo text-2xl flex items-center mb-3"><span class="info-num">1</span>Cargá tus productos y fotos</h4>
+            <p class="text-slate-600 leading-relaxed max-w-md">Registrás cada artículo con su código y su stock, y subís fotos y videos clasificados como producto, modelo o marca. Todo queda ordenado en tu propia galería.</p>
+          </div>
+        </li>
+        <li class="grid md:grid-cols-2 gap-8 items-center">
+          <div class="md:order-2 rounded-2xl bg-[#ffe9dd] p-6">
+            <svg viewBox="0 0 260 180" class="w-full" role="img" aria-label="Una foto que se arrastra hacia el carrusel">
+              <rect x="20" y="100" width="220" height="66" rx="12" fill="#fff" stroke="#ff7a3d" stroke-width="3" stroke-dasharray="8 6"/>
+              <rect x="34" y="110" width="46" height="46" rx="7" fill="#ffd9c2"/><circle cx="57" cy="133" r="10" fill="#ff7a3d"/>
+              <rect x="90" y="110" width="46" height="46" rx="7" fill="#e6d9ff"/><path d="M101 148 L113 122 L125 148Z" fill="#6c3de0"/>
+              <rect x="146" y="110" width="46" height="46" rx="7" fill="#c9f2e3"/><rect x="158" y="122" width="22" height="22" rx="11" fill="#14b88a"/>
+              <g fill="#2a1240"><circle cx="43" cy="119" r="8"/><circle cx="99" cy="119" r="8"/><circle cx="155" cy="119" r="8"/></g>
+              <g fill="#fff" font-size="10" font-weight="700" text-anchor="middle"><text x="43" y="122.5">1</text><text x="99" y="122.5">2</text><text x="155" y="122.5">3</text></g>
+              <g transform="rotate(-9 200 50)"><rect x="170" y="22" width="60" height="60" rx="9" fill="#d6249f"/><circle cx="200" cy="52" r="13" fill="#ffd9c2"/></g>
+              <path d="M186 66 L186 92 L193 86 L198 98 L204 96 L199 84 L208 84Z" fill="#2a1240" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="md:order-1">
+            <h4 class="info-titulo text-2xl flex items-center mb-3"><span class="info-num">2</span>Armá el post arrastrando</h4>
+            <p class="text-slate-600 leading-relaxed max-w-md">Elegí un artículo, arrastrá los medios al carrusel y ordenalos como quieras. ¿Poco tiempo? El botón de automatizar propone una estructura de carrusel lista para enviar.</p>
+          </div>
+        </li>
+        <li class="grid md:grid-cols-2 gap-8 items-center">
+          <div class="rounded-2xl bg-[#ffe0f1] p-6">
+            <svg viewBox="0 0 260 180" class="w-full" role="img" aria-label="Un texto que se escribe con ayuda de la inteligencia artificial">
+              <rect x="30" y="30" width="200" height="104" rx="14" fill="#fff"/>
+              <rect x="48" y="50" width="120" height="9" rx="4.5" fill="#2a1240"/>
+              <rect x="48" y="69" width="164" height="7" rx="3.5" fill="#e6c3d9"/>
+              <rect x="48" y="85" width="146" height="7" rx="3.5" fill="#e6c3d9"/>
+              <rect x="48" y="101" width="92" height="7" rx="3.5" fill="#d6249f"/>
+              <rect x="146" y="98" width="3" height="14" rx="1.5" fill="#d6249f"/>
+              <circle cx="212" cy="140" r="24" fill="#2a1240"/>
+              <text x="212" y="146" font-size="17" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+              <use href="#am-spark" transform="translate(222 32) scale(2)" fill="#d6249f"/>
+              <use href="#am-spark" transform="translate(246 82) scale(1.1)" fill="#ff7a3d"/>
+              <use href="#am-spark" transform="translate(34 152) scale(1.4)" fill="#6c3de0"/>
+            </svg>
+          </div>
+          <div>
+            <h4 class="info-titulo text-2xl flex items-center mb-3"><span class="info-num">3</span>La IA escribe el texto</h4>
+            <p class="text-slate-600 leading-relaxed max-w-md">Si dejás el pie de foto vacío, la inteligencia artificial redacta uno teniendo en cuenta el producto y su stock. Si preferís escribirlo vos, también podés.</p>
+          </div>
+        </li>
+        <li class="grid md:grid-cols-2 gap-8 items-center">
+          <div class="md:order-2 rounded-2xl bg-[#d9f6ec] p-6">
+            <svg viewBox="0 0 260 180" class="w-full" role="img" aria-label="Un calendario y un avión de papel: las publicaciones salen solas">
+              <rect x="26" y="26" width="128" height="128" rx="14" fill="#fff"/>
+              <path d="M26 40 a14 14 0 0 1 14 -14 h100 a14 14 0 0 1 14 14 v16 h-128 z" fill="#14b88a"/>
+              <g fill="#d7e2dd"><circle cx="50" cy="80" r="7"/><circle cx="76" cy="80" r="7"/><circle cx="102" cy="80" r="7"/><circle cx="128" cy="80" r="7"/><circle cx="50" cy="104" r="7"/><circle cx="76" cy="104" r="7"/><circle cx="102" cy="104" r="7"/><circle cx="128" cy="104" r="7"/><circle cx="50" cy="128" r="7"/><circle cx="76" cy="128" r="7"/></g>
+              <g fill="#14b88a"><circle cx="50" cy="80" r="7"/><circle cx="102" cy="80" r="7"/><circle cx="76" cy="104" r="7"/><circle cx="128" cy="104" r="7"/><circle cx="50" cy="128" r="7"/></g>
+              <path d="M168 84 L240 46 L208 124 L192 98Z" fill="#2a1240"/>
+              <path d="M192 98 L240 46" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <circle cx="214" cy="146" r="20" fill="#14b88a"/>
+              <path d="M205 146 l7 7 l14 -14" stroke="#fff" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="md:order-1">
+            <h4 class="info-titulo text-2xl flex items-center mb-3"><span class="info-num">4</span>Se publica solo</h4>
+            <p class="text-slate-600 leading-relaxed max-w-md">Los posts esperan en una cola y un proceso automático los publica en tu Instagram, en orden o al azar. Con el modo iterativo, cuando la cola termina vuelve a empezar y tu feed nunca se queda sin contenido.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Lo que controlás -->
+    <section class="bg-[#efe7ff]">
+      <div class="max-w-5xl mx-auto px-5 md:px-10 py-14 md:py-16 grid md:grid-cols-3 gap-8">
+        <h3 class="info-titulo text-3xl md:text-4xl md:col-span-1">Vos decidís cómo sale cada post</h3>
+        <dl class="md:col-span-2 grid sm:grid-cols-2 gap-x-8 gap-y-6">
+          <div><dt class="font-bold text-[#2a1240]">Estructura del carrusel</dt><dd class="mt-1 text-sm text-slate-600">Armalo a mano o dejá que la app proponga una estructura entre varias.</dd></div>
+          <div><dt class="font-bold text-[#2a1240]">Pie de foto</dt><dd class="mt-1 text-sm text-slate-600">Escrito por vos o redactado por la IA según el producto y el stock.</dd></div>
+          <div><dt class="font-bold text-[#2a1240]">Orden de publicación</dt><dd class="mt-1 text-sm text-slate-600">Cíclico, siguiendo el orden de creación, o aleatorio.</dd></div>
+          <div><dt class="font-bold text-[#2a1240]">Modo iterativo</dt><dd class="mt-1 text-sm text-slate-600">Al terminar la cola, se reinicia sola para que siempre haya algo por publicar.</dd></div>
+          <div class="sm:col-span-2"><dt class="font-bold text-[#2a1240]">Edición en la cola</dt><dd class="mt-1 text-sm text-slate-600">Quitá o reordená archivos, cambiá el texto o el estado de una publicación antes de que salga.</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- Tus cuentas, tus datos -->
+    <section class="max-w-5xl mx-auto px-5 md:px-10 py-14 md:py-20">
+      <h3 class="info-titulo text-3xl md:text-4xl mb-3">Tus cuentas, tus datos</h3>
+      <p class="text-slate-600 mb-9 max-w-xl">Auto Manager se conecta a servicios que ya usás. Adentro de la app, en Configuración &gt; Tutoriales, ves cada conexión en detalle.</p>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="flex gap-4"><div class="w-11 h-11 rounded-full bg-[#ffe9dd] text-[#ff7a3d] flex items-center justify-center shrink-0"><i class="fa-solid fa-cloud-arrow-up"></i></div><p class="text-sm text-slate-600 leading-relaxed"><b class="text-[#2a1240]">Tus fotos, en tu Cloudinary.</b> Se guardan en tu propia cuenta. Nunca te pedimos tu clave de Cloudinary.</p></div>
+        <div class="flex gap-4"><div class="w-11 h-11 rounded-full bg-[#ffe0f1] text-[#d6249f] flex items-center justify-center shrink-0"><i class="fa-brands fa-instagram"></i></div><p class="text-sm text-slate-600 leading-relaxed"><b class="text-[#2a1240]">Instagram, con login oficial.</b> La conexión usa el inicio de sesión de Meta: no vemos tu contraseña.</p></div>
+        <div class="flex gap-4"><div class="w-11 h-11 rounded-full bg-[#d9f6ec] text-[#14b88a] flex items-center justify-center shrink-0"><i class="fa-solid fa-table-cells"></i></div><p class="text-sm text-slate-600 leading-relaxed"><b class="text-[#2a1240]">Una planilla solo para vos.</b> Tus artículos y publicaciones viven separados de los de otros clientes.</p></div>
+      </div>
+    </section>
+
+    <!-- Cierre -->
+    <section class="bg-[#2a1240] text-white">
+      <div class="max-w-4xl mx-auto px-5 md:px-10 py-14 text-center">
+        <h3 class="info-titulo text-3xl md:text-4xl">¿Lo probamos con tu negocio?</h3>
+        <p class="mt-3 text-white/75">Creá tu cuenta y te contactamos para activarla.</p>
+        <div class="mt-7 flex flex-wrap justify-center gap-3">
+          <button type="button" id="btn-info-registro-2" class="px-6 py-3 rounded-lg bg-[#ff7a3d] hover:bg-[#ff8d58] text-[#2a1240] font-bold transition-colors">Crear mi cuenta</button>
+          <a data-whatsapp href="#" target="_blank" rel="noopener noreferrer" class="px-6 py-3 rounded-lg border border-white/30 hover:bg-white/10 font-semibold inline-flex items-center gap-2 transition-colors"><i class="fa-brands fa-whatsapp"></i> Escribinos por WhatsApp</a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- APP PRINCIPAL (oculta hasta validar sesión)                              -->
+  <!-- ======================================================================= -->
+  <div id="app-container" class="hidden flex w-full h-full">
 
   <!-- SIDEBAR -->
   <aside class="w-64 bg-white border-r shadow-sm flex flex-col shrink-0 z-20">
     <div class="p-6 border-b flex items-center gap-3">
-      <div class="bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center shadow-sm">
-        <i class="fa-solid fa-layer-group text-sm"></i>
-      </div>
+      <div class="bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center shadow-sm"><i class="fa-solid fa-layer-group text-sm"></i></div>
       <h1 class="text-lg font-bold text-gray-900 tracking-tight">Auto Manager</h1>
     </div>
     <nav class="flex-1 py-4 flex flex-col gap-1">
-      <div onclick="cambiarVista('productos')" id="nav-productos" class="nav-item active px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3">
-        <i class="fa-solid fa-box-open w-5 text-center"></i> Inventario
-      </div>
-      <div onclick="cambiarVista('manager')" id="nav-manager" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3">
-        <i class="fa-solid fa-wand-magic-sparkles w-5 text-center"></i> Diseñador de Posts
-      </div>
-      <div onclick="cambiarVista('cola')" id="nav-cola" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3">
-        <i class="fa-regular fa-paper-plane w-5 text-center"></i> Cola de Envíos
-      </div>
-      <div onclick="cambiarVista('config')" id="nav-config" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3">
-        <i class="fa-solid fa-gear w-5 text-center"></i> Configuración
-      </div>
+      <div data-action="vista" data-arg="productos" id="nav-productos" class="nav-item active px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3"><i class="fa-solid fa-box-open w-5 text-center"></i> Inventario</div>
+      <div data-action="vista" data-arg="manager" id="nav-manager" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3"><i class="fa-solid fa-wand-magic-sparkles w-5 text-center"></i> Diseñador de Posts</div>
+      <div data-action="vista" data-arg="cola" id="nav-cola" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3"><i class="fa-regular fa-paper-plane w-5 text-center"></i> Cola de Envíos</div>
+      <div data-action="vista" data-arg="config" id="nav-config" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3"><i class="fa-solid fa-gear w-5 text-center"></i> Configuración</div>
     </nav>
+    <div class="p-4 border-t">
+      <div id="sidebar-negocio" class="text-xs font-semibold text-gray-500 mb-2 truncate"></div>
+      <button type="button" data-action="cerrar-sesion" class="w-full text-left text-xs text-red-500 hover:text-red-700 flex items-center gap-2 transition-colors"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</button>
+    </div>
   </aside>
 
-  <!-- MAIN CONTENT -->
+  <!-- CONTENIDO -->
   <main class="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-gray-50">
-    <header class="bg-white px-6 py-4 border-b text-sm text-gray-500 shrink-0">
-      Workspace <i class="fa-solid fa-chevron-right text-[10px] mx-2"></i> <span id="header-title" class="font-semibold text-gray-800">Gestión de productos</span>
+    <header class="bg-white px-6 py-4 border-b text-sm text-gray-500 shrink-0 flex items-center justify-between">
+      <div>Workspace <i class="fa-solid fa-chevron-right text-[10px] mx-2"></i> <span id="header-title" class="font-semibold text-gray-800">Gestión de Inventario</span></div>
+      <button type="button" data-action="tour" class="inline-flex items-center gap-2 text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-3 py-1.5 rounded-full transition-colors"><i class="fa-regular fa-circle-question"></i> Guía</button>
     </header>
 
     <!-- VISTA 1: INVENTARIO -->
@@ -80,11 +434,9 @@
       <div class="p-6 flex justify-between items-center shrink-0">
         <div class="relative w-64">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
-          <input type="text" id="buscador-productos" onkeyup="filtrarTabla('tabla-productos', this.value)" placeholder="Buscar producto..." class="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-md text-sm focus:ring-blue-500 shadow-sm">
+          <input type="text" id="buscador-productos" placeholder="Buscar producto..." class="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-md text-sm focus:ring-blue-500 shadow-sm">
         </div>
-        <button onclick="abrirModalNuevoProducto()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors">
-          <i class="fa-solid fa-plus mr-1"></i> Nuevo Producto
-        </button>
+        <button type="button" data-action="nuevo-producto" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors"><i class="fa-solid fa-plus mr-1"></i> Nuevo Producto</button>
       </div>
       <div class="px-6 pb-6 flex-1 overflow-auto">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -94,7 +446,7 @@
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">SKU</th>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Nombre</th>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
-                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase flex items-center gap-2">Stock <i class="fa-solid fa-circle-info text-gray-400 hover:text-blue-500 cursor-help" title="Influye en el tipo de pie de foto generado."></i></th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Stock <i class="fa-solid fa-circle-info text-gray-400 hover:text-blue-500 cursor-help ml-1" title="Influye en el tipo de pie de foto generado."></i></th>
                 <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase">Acciones</th>
               </tr>
             </thead>
@@ -104,102 +456,104 @@
       </div>
     </section>
 
-    <!-- VISTA 2: CONTENT MANAGER -->
+    <!-- VISTA 2: DISEÑADOR DE POSTS -->
     <section id="vista-manager" class="w-full h-full hidden flex-col">
       <div class="p-4 bg-white border-b flex items-center gap-4 shrink-0 shadow-sm">
         <span class="font-semibold text-gray-800 text-sm">Producto:</span>
-        <div class="relative w-80">
-          <input type="text" list="lista-productos" id="input-producto" onchange="seleccionarProductoManager()" placeholder="Tipea para buscar SKU o Nombre..." class="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:ring-blue-500 focus:bg-white shadow-sm">
-          <datalist id="lista-productos"></datalist>
-          <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-gray-400 text-xs pointer-events-none"></i>
+        <div id="combo-productos" class="relative w-80">
+          <input type="text" id="input-producto" role="combobox" aria-expanded="false" aria-controls="combo-productos-lista" aria-autocomplete="list" autocomplete="off" placeholder="Tipeá para buscar SKU o Nombre..." class="w-full pl-3 pr-16 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:ring-blue-500 focus:bg-white shadow-sm">
+          <button type="button" id="combo-productos-limpiar" title="Quitar selección" aria-label="Quitar selección" class="hidden absolute right-8 top-2 p-1 text-gray-300 hover:text-gray-500 text-xs"><i class="fa-solid fa-xmark"></i></button>
+          <button type="button" id="combo-productos-toggle" tabindex="-1" title="Ver todos los artículos" aria-label="Ver todos los artículos" class="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-chevron-down text-xs"></i></button>
+          <div id="combo-productos-lista" role="listbox" class="hidden absolute z-40 left-0 right-0 mt-1 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-lg py-1"></div>
         </div>
       </div>
 
       <div class="flex-1 flex overflow-hidden">
-        <!-- Panel Izquierdo: Galería -->
+        <!-- Galería -->
         <div class="w-1/2 bg-white flex flex-col h-full border-r">
           <div class="flex border-b px-4 mt-2 gap-6 overflow-x-auto no-scrollbar" id="tabs-container"></div>
           <div class="p-6 overflow-y-auto flex-1">
-            <div id="library-grid" class="grid grid-cols-3 xl:grid-cols-4 gap-4">
-              <div class="col-span-full text-center text-gray-400 mt-10 text-sm">Selecciona un producto arriba.</div>
-            </div>
+            <div id="library-grid" class="grid grid-cols-3 xl:grid-cols-4 gap-4"></div>
           </div>
         </div>
-        
-        <!-- Panel Derecho: Edición -->
+
+        <!-- Edición -->
         <div class="w-1/2 bg-gray-50 flex flex-col h-full">
-          <div class="p-6 flex-1 flex flex-col">
+          <div class="p-6 flex-1 flex flex-col min-h-0">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
-              
-              <!-- Cabecera de Edición -->
-              <div class="bg-white border-b px-5 py-3 flex justify-between items-center shrink-0">
+              <!-- relative + z-30: el cuadro informativo queda por encima de la zona de edición -->
+              <div class="bg-white border-b px-5 py-3 flex justify-between items-center shrink-0 relative z-30">
                 <div class="flex items-center gap-3">
                   <h3 class="font-bold text-gray-800 text-sm">Arrastra tus medios aquí</h3>
                   <div class="flex items-center gap-1.5 ml-2">
-                    <button onclick="generarAutomatizacion()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs font-semibold px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 border border-purple-200 shadow-sm"><i class="fa-solid fa-wand-magic-sparkles"></i> Automatizar IA</button>
+                    <button type="button" id="btn-automatizar" data-action="automatizar" class="btn-magia text-white text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400"><i class="fa-solid fa-wand-magic-sparkles"></i> <span id="btn-automatizar-txt">Automatizar con IA</span></button>
                     <div class="relative group cursor-help ml-1">
-                      <i class="fa-solid fa-circle-info text-gray-400 text-sm"></i>
-                      <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-64 bg-gray-800 text-white text-[11px] leading-relaxed rounded p-2.5 z-10 shadow-lg text-center">Esta herramienta agrupa aleatoriamente los medios disponibles de este artículo utilizando estructuras probadas de engagement (mezclando tipos de foto) para armar carruseles en segundos sin esfuerzo.</div>
+                      <i class="fa-solid fa-circle-info text-gray-400 hover:text-violet-500 text-sm transition-colors" tabindex="0" aria-describedby="tip-automatizar"></i>
+                      <div id="tip-automatizar" role="tooltip" class="absolute top-full left-0 mt-2 hidden group-hover:block group-focus-within:block w-72 bg-gray-900 text-white text-[11px] leading-relaxed rounded-lg p-3 z-50 shadow-xl text-left">Arma el carrusel por vos: elige una estructura de contenido entre 12 patrones (lookbook, catálogo, detalle, editorial y más) y mezcla los tipos de foto de este artículo. Queda en la zona de edición para que lo ajustes antes de enviarlo.</div>
                     </div>
                   </div>
                 </div>
                 <span id="counter" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold">0 items</span>
               </div>
-              
-              <!-- Zona de Drop -->
-              <div id="carousel-zone" class="p-5 flex gap-4 overflow-x-auto items-center min-h-[180px] bg-gray-50/50 relative shrink-0">
-                 <div id="empty-carousel-msg" class="w-full text-center text-gray-400 text-xs font-medium tracking-widest uppercase absolute left-0 right-0 pointer-events-none">Zona de edición</div>
+
+              <div id="magia-resultado" class="hidden shrink-0 mx-5 mt-3 flex items-center gap-2 text-xs bg-fuchsia-50 border border-fuchsia-100 rounded-lg px-3 py-2"></div>
+
+              <!-- Los medios se acomodan en filas (con salto de línea), no en una sola tira horizontal -->
+              <div id="carousel-zone" class="p-5 flex flex-wrap content-start items-start gap-3 max-h-72 overflow-y-auto bg-gray-50/50 relative shrink-0">
+                <div id="empty-carousel-msg" class="w-full text-center text-gray-400 text-xs font-medium tracking-widest uppercase absolute left-0 right-0 top-1/2 -translate-y-1/2 pointer-events-none">Zona de edición</div>
               </div>
-              
-              <!-- Controles Extra de Post con Emoji Picker -->
+
               <div class="border-t bg-white p-4 flex-1 overflow-y-auto">
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Pie de foto manual (Opcional)</label>
-                    <div class="relative w-full">
-                      <textarea id="inp-pie-foto" rows="2" placeholder="Si lo dejas en blanco, la Inteligencia Artificial generará el texto basándose en el producto y el stock..." class="w-full pl-3 pr-10 py-2 text-sm bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-1 focus:ring-blue-500 resize-none"></textarea>
-                      <button id="btn-emoji" type="button" class="absolute bottom-2 right-2 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-1 shadow-sm border border-gray-100">
-                        <i class="fa-regular fa-face-smile text-lg"></i>
-                      </button>
-                      <div id="emoji-popup" class="hidden absolute top-full right-0 mt-2 z-50 shadow-2xl rounded-lg overflow-hidden border border-gray-200">
-                        <emoji-picker class="light"></emoji-picker>
-                      </div>
-                    </div>
+                <label for="inp-pie-foto" class="block text-xs font-semibold text-gray-700 mb-1.5">Pie de foto manual (opcional)</label>
+                <div class="relative w-full">
+                  <textarea id="inp-pie-foto" rows="6" maxlength="2200" placeholder="Si lo dejas en blanco, la Inteligencia Artificial generará el texto basándose en el producto y el stock..." class="w-full min-h-[9rem] pl-3 pr-10 py-2 text-sm bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-1 focus:ring-blue-500 resize-y"></textarea>
+                  <button id="btn-emoji" type="button" class="absolute bottom-2 right-2 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-1 shadow-sm border border-gray-100"><i class="fa-regular fa-face-smile text-lg"></i></button>
+                  <div id="emoji-popup" class="hidden absolute top-full right-0 mt-2 z-50 shadow-2xl rounded-lg overflow-hidden border border-gray-200">
+                    <emoji-picker class="light"></emoji-picker>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           <div class="bg-white border-t p-4 flex justify-between items-center shadow-sm shrink-0">
-            <button onclick="limpiarCarrusel()" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md shadow-sm font-medium text-sm transition-colors">Limpiar Todo</button>
-            <button id="btn-guardar" onclick="guardarPost()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm font-medium text-sm transition-colors flex items-center gap-2">
-              <i class="fa-solid fa-paper-plane"></i> Enviar a Make
-            </button>
+            <button type="button" data-action="limpiar" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md shadow-sm font-medium text-sm transition-colors">Limpiar Todo</button>
+            <button type="button" id="btn-guardar" data-action="guardar-post" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm font-medium text-sm transition-colors flex items-center gap-2"><i class="fa-solid fa-paper-plane"></i> Enviar a la cola</button>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- VISTA 3: COLA DE ENVÍOS -->
+    <!-- VISTA 3: COLA -->
     <section id="vista-cola" class="w-full h-full hidden flex-col overflow-hidden">
-      <div class="p-6 shrink-0 flex justify-between items-center bg-white border-b">
-         <h2 class="text-lg font-bold text-gray-800">Publicaciones Pendientes</h2>
-         
-         <!-- NUEVO CONTROL DE ORDEN DE COLA -->
-         <div class="flex items-center gap-3 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg shadow-sm">
-            <label class="text-xs font-semibold text-gray-700">Distribución (Make):</label>
+      <div class="p-6 shrink-0 flex flex-wrap justify-between items-center gap-3 bg-white border-b relative z-30">
+        <h2 class="text-lg font-bold text-gray-800">Cola de publicaciones</h2>
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-3 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg shadow-sm">
+            <label for="sel-orden-cola" class="text-xs font-semibold text-gray-700">Distribución (Make):</label>
             <select id="sel-orden-cola" class="text-sm bg-white border border-gray-200 rounded py-1 px-2 focus:ring-blue-500 outline-none">
               <option value="ciclico">Cíclico (Secuencial)</option>
               <option value="aleatorio">Aleatorio</option>
             </select>
-            <button onclick="aplicarOrdenCola()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded transition-colors shadow-sm">Aplicar</button>
+            <button type="button" data-action="aplicar-orden" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded transition-colors shadow-sm">Aplicar</button>
             <div class="relative group cursor-help ml-1">
               <i class="fa-solid fa-circle-info text-gray-400 text-sm"></i>
-              <div class="absolute top-full right-0 mt-2 hidden group-hover:block w-64 bg-gray-800 text-white text-[11px] leading-relaxed rounded p-2.5 z-50 shadow-lg text-left">
-                Determina el orden de procesado. <b>Cíclico</b> ordena por fecha de creación, <b>Aleatorio</b> distribuye los posts sin patrón. Aplica a todos los elementos pendientes y a los que se creen a futuro.
-              </div>
+              <div class="absolute top-full right-0 mt-2 hidden group-hover:block w-64 bg-gray-800 text-white text-[11px] leading-relaxed rounded p-2.5 z-50 shadow-lg text-left">Determina el orden de procesado. <b>Cíclico</b> ordena por fecha de creación, <b>Aleatorio</b> distribuye los posts sin patrón. Aplica a todos los pendientes y a los que se creen a futuro.</div>
             </div>
-         </div>
+          </div>
+
+          <!-- Iterativo: se guarda al tildar (no necesita "Aplicar") -->
+          <div id="caja-iterativo" class="flex items-center gap-3 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg shadow-sm">
+            <label class="relative inline-flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="chk-iterativo" class="sr-only peer">
+              <span class="w-9 h-5 bg-gray-300 rounded-full transition-colors peer-checked:bg-emerald-500 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-300 relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-4"></span>
+              <span class="text-xs font-semibold text-gray-700">Iterativo</span>
+            </label>
+            <div class="relative group cursor-help ml-1">
+              <i class="fa-solid fa-circle-info text-gray-400 text-sm" tabindex="0" aria-describedby="tip-iterativo"></i>
+              <div id="tip-iterativo" role="tooltip" class="absolute top-full right-0 mt-2 hidden group-hover:block group-focus-within:block w-72 bg-gray-800 text-white text-[11px] leading-relaxed rounded p-2.5 z-50 shadow-lg text-left">Cuando se publican <b>todas</b> las publicaciones de la cola, un proceso automático (Make) las vuelve a poner en <b>Pendiente</b> y el ciclo arranca de nuevo, sin fin. En cada vuelta se vacían los pies de foto y la IA redacta textos nuevos. Desactivalo si querés que cada publicación salga una sola vez.</div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="px-6 pb-6 flex-1 overflow-auto mt-4">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -209,8 +563,10 @@
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase w-32">SKU</th>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase w-48">Nombre</th>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase">Medios</th>
-                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase">Pie de Foto</th>
-                <th class="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase w-20">Acción</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase">Pie de foto</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase">Estado</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase">Fecha de publicación</th>
+                <th class="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase w-28">Acciones</th>
               </tr>
             </thead>
             <tbody id="tabla-cola" class="bg-white divide-y divide-gray-100"></tbody>
@@ -221,48 +577,116 @@
 
     <!-- VISTA 4: CONFIGURACIÓN -->
     <section id="vista-config" class="w-full h-full hidden flex-col overflow-auto">
-      <div class="p-8 max-w-2xl">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 class="text-lg font-bold text-gray-800 mb-2">Credenciales de Cloudinary</h3>
-          <p class="text-sm text-gray-500 mb-6">Configura el entorno de almacenamiento multimedia. Requiere un Preset tipo Unsigned.</p>
-          <div class="space-y-4">
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">Cloud Name</label><input type="text" id="inp-cloud-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm"></div>
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">Upload Preset</label><input type="text" id="inp-upload-preset" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm"></div>
-            <div class="pt-4"><button onclick="guardarConfig()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md shadow-sm text-sm font-medium">Guardar Configuración</button></div>
+      <div class="p-6 md:p-8 max-w-4xl w-full">
+        <div id="cfg-tabs" role="tablist" class="flex flex-wrap gap-2 mb-6">
+          <button type="button" role="tab" id="cfg-tab-personal" data-action="cfg-tab" data-arg="personal" class="cfg-tab"><i class="fa-regular fa-user"></i> Información personal</button>
+          <button type="button" role="tab" id="cfg-tab-contacto" data-action="cfg-tab" data-arg="contacto" class="cfg-tab"><i class="fa-regular fa-comments"></i> Contacto</button>
+          <button type="button" role="tab" id="cfg-tab-cloudinary" data-action="cfg-tab" data-arg="cloudinary" class="cfg-tab"><i class="fa-solid fa-cloud-arrow-up"></i> Credenciales de Cloudinary</button>
+          <button type="button" role="tab" id="cfg-tab-tutoriales" data-action="cfg-tab" data-arg="tutoriales" class="cfg-tab"><i class="fa-regular fa-lightbulb"></i> Tutoriales</button>
+        </div>
+
+        <!-- Información personal -->
+        <div id="cfg-panel-personal" class="hidden">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-1">Información personal</h3>
+            <p class="text-sm text-gray-500 mb-6">Los datos de tu cuenta. El email es tu usuario de acceso y no se cambia desde acá.</p>
+            <dl class="grid sm:grid-cols-2 gap-4 mb-6 text-sm">
+              <div><dt class="text-xs font-semibold text-gray-500">Email</dt><dd id="pf-email" class="mt-0.5 text-gray-800 break-all">—</dd></div>
+              <div><dt class="text-xs font-semibold text-gray-500">Plan</dt><dd id="pf-plan" class="mt-0.5 text-gray-800">—</dd></div>
+              <div><dt class="text-xs font-semibold text-gray-500">Estado de la cuenta</dt><dd class="mt-0.5"><span id="pf-estado" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">—</span></dd></div>
+              <div><dt class="text-xs font-semibold text-gray-500">Cliente desde</dt><dd id="pf-registro" class="mt-0.5 text-gray-800">—</dd></div>
+            </dl>
+            <div class="space-y-4 border-t pt-6">
+              <div><label for="pf-nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre del negocio</label><input type="text" id="pf-nombre" maxlength="100" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm"></div>
+              <div><label for="pf-telefono" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label><input type="tel" id="pf-telefono" maxlength="30" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm"></div>
+              <div class="pt-2"><button type="button" data-action="guardar-perfil" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md shadow-sm text-sm font-medium">Guardar cambios</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contacto -->
+        <div id="cfg-panel-contacto" class="hidden">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-1">Contacto</h3>
+            <p class="text-sm text-gray-500 mb-6">Escribinos si necesitás ayuda con la app, querés cambiar de plan o tenés un problema con una publicación.</p>
+            <div class="space-y-3 max-w-sm">
+              <a data-whatsapp href="#" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-md text-sm font-medium transition-colors"><i class="fa-brands fa-whatsapp text-lg"></i> Chatear por WhatsApp</a>
+              <a id="ct-email" href="#" class="w-full inline-flex items-center justify-center gap-2 border border-gray-300 hover:bg-gray-50 text-gray-700 py-2.5 rounded-md text-sm font-medium transition-colors break-all"><i class="fa-regular fa-envelope"></i> <span id="ct-email-txt">Email</span></a>
+            </div>
+            <p class="text-xs text-gray-400 mt-4">El botón de WhatsApp abre una conversación con un mensaje de saludo ya escrito. No se comparte ningún dato tuyo hasta que vos enviás el mensaje.</p>
+          </div>
+        </div>
+
+        <!-- Credenciales de Cloudinary -->
+        <div id="cfg-panel-cloudinary" class="hidden">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Credenciales de Cloudinary</h3>
+            <p class="text-sm text-gray-500 mb-6">Configura el entorno de almacenamiento multimedia. Requiere un Preset tipo Unsigned.</p>
+            <div class="space-y-4">
+              <div><label for="inp-cloud-name" class="block text-sm font-medium text-gray-700 mb-1">Cloud Name</label><input type="text" id="inp-cloud-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm"></div>
+              <div><label for="inp-upload-preset" class="block text-sm font-medium text-gray-700 mb-1">Upload Preset</label><input type="text" id="inp-upload-preset" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm"></div>
+              <div class="pt-4"><button type="button" data-action="guardar-config" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md shadow-sm text-sm font-medium">Guardar Configuración</button></div>
+            </div>
+            <div class="mt-6 flex gap-3 bg-emerald-50 border border-emerald-100 rounded-lg p-4 text-sm text-emerald-900">
+              <i class="fa-solid fa-shield-halved mt-0.5"></i>
+              <p>Solo guardamos estos dos datos. Un preset <b>Unsigned</b> únicamente permite subir archivos: no puede ver ni borrar el resto de tu biblioteca, y nunca te pedimos tu API Secret. <button type="button" data-action="cfg-tab" data-arg="tutoriales" class="underline font-semibold">¿Cómo los consigo?</button></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tutoriales -->
+        <div id="cfg-panel-tutoriales" class="hidden space-y-6">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 class="text-lg font-bold text-gray-800 mb-1">Recorrido guiado</h3>
+              <p class="text-sm text-gray-500 max-w-md">Te llevamos por cada sección de la app señalando cada botón. Dura un par de minutos y podés salir cuando quieras.</p>
+            </div>
+            <button type="button" data-action="tour" class="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-md shadow-sm text-sm font-semibold inline-flex items-center gap-2"><i class="fa-solid fa-play text-xs"></i> Empezar recorrido</button>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-gray-800 mb-3">Cómo funciona cada sección</h3>
+            <div id="tut-secciones" class="space-y-2"></div>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-gray-800 mb-3">Cómo conseguir las credenciales de Cloudinary</h3>
+            <div class="bg-white border border-gray-200 rounded-lg p-4"><ol id="tut-cloudinary" class="list-decimal pl-5 space-y-1.5 text-sm text-gray-600"></ol></div>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-gray-800 mb-1">Conexiones externas y seguridad</h3>
+            <p class="text-sm text-gray-500 mb-3">Qué servicios usa Auto Manager, qué información llega a cada uno y cómo cortar el acceso cuando quieras.</p>
+            <div id="tut-vinculos" class="space-y-2"></div>
           </div>
         </div>
       </div>
     </section>
-
   </main>
+  </div><!-- fin #app-container -->
 
   <!-- MODAL: NUEVO PRODUCTO -->
   <div id="modal-nuevo-producto" class="fixed inset-0 bg-gray-900/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
     <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
       <div class="px-6 py-4 border-b flex justify-between items-center bg-white shrink-0">
         <h3 class="text-lg font-bold text-gray-800">Crear Nuevo Producto</h3>
-        <button onclick="cerrarModalNuevoProducto()" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
+        <button type="button" data-action="cerrar-nuevo-producto" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="flex-1 overflow-y-auto flex flex-col md:flex-row bg-gray-50">
         <div class="w-full md:w-1/3 p-6 bg-white border-r">
           <div class="space-y-4">
-            <div><label class="block text-sm font-semibold text-gray-700 mb-1">SKU *</label><input type="text" id="np-sku" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm uppercase"></div>
-            <div><label class="block text-sm font-semibold text-gray-700 mb-1">Nombre *</label><input type="text" id="np-nombre" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
+            <div><label for="np-sku" class="block text-sm font-semibold text-gray-700 mb-1">SKU *</label><input type="text" id="np-sku" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm uppercase"></div>
+            <div><label for="np-nombre" class="block text-sm font-semibold text-gray-700 mb-1">Nombre *</label><input type="text" id="np-nombre" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
+              <label for="np-estado" class="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
               <select id="np-estado" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm bg-white">
-                <option value="Activo">Activo</option>
-                <option value="Inactivo">Inactivo</option>
-                <option value="Borrador">Borrador</option>
+                <option value="Activo">Activo</option><option value="Inactivo">Inactivo</option><option value="Borrador">Borrador</option>
               </select>
             </div>
-            <div><label class="block text-sm font-semibold text-gray-700 mb-1">Stock</label><input type="number" id="np-stock" value="0" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
+            <div><label for="np-stock" class="block text-sm font-semibold text-gray-700 mb-1">Stock</label><input type="number" id="np-stock" value="0" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
           </div>
         </div>
         <div class="w-full md:w-2/3 p-6 flex flex-col">
           <div class="flex justify-between items-center mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
             <div class="flex items-center gap-3"><span class="text-sm font-semibold text-blue-900">1. Define el tipo de medio:</span><select id="np-select-cat" class="border border-blue-200 rounded px-3 py-1.5 text-sm bg-white min-w-[150px]"><option value="">Seleccionar...</option></select></div>
-            <button onclick="abrirWidgetNuevoProducto()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> 2. Subir Archivos</button>
+            <button type="button" data-action="widget-nuevo" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> 2. Subir Archivos</button>
           </div>
           <div class="flex-1 bg-white border border-dashed border-gray-300 rounded-lg p-4 overflow-y-auto">
             <div id="np-grid-fotos" class="grid grid-cols-3 sm:grid-cols-4 gap-3"><div id="np-empty-msg" class="col-span-full text-center text-gray-400 text-sm mt-10">Selecciona el tipo arriba y comienza a subir fotos o videos.</div></div>
@@ -270,474 +694,1513 @@
         </div>
       </div>
       <div class="px-6 py-4 border-t bg-white flex justify-end gap-3 shrink-0">
-        <button onclick="cerrarModalNuevoProducto()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm font-medium">Cancelar</button>
-        <button id="btn-guardar-nuevo" onclick="guardarNuevoProducto()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow-sm text-sm font-medium transition-colors">Guardar Producto Final</button>
+        <button type="button" data-action="cerrar-nuevo-producto" class="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm font-medium">Cancelar</button>
+        <button type="button" id="btn-guardar-nuevo" data-action="guardar-nuevo-producto" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow-sm text-sm font-medium transition-colors">Guardar Producto</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: GALERIA -->
+  <!-- MODAL: GALERÍA -->
   <div id="modal-galeria" class="fixed inset-0 bg-gray-900/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
     <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl h-[80vh] flex flex-col overflow-hidden">
-      <div class="px-6 py-4 border-b flex justify-between items-center bg-white"><h3 class="text-lg font-bold text-gray-800" id="modal-titulo">Galería</h3><button onclick="cerrarModalGaleria()" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="px-6 py-4 border-b flex justify-between items-center bg-white"><h3 class="text-lg font-bold text-gray-800" id="modal-titulo">Galería</h3><button type="button" data-action="cerrar-galeria" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="p-4 bg-blue-50 flex gap-4 border-b shrink-0 items-center justify-between">
         <div class="flex items-center gap-3">
           <span class="text-sm font-semibold text-blue-900">Define el tipo antes de subir:</span>
           <select id="modal-select-cat" class="border border-blue-200 rounded px-3 py-1.5 text-sm w-48 bg-white focus:ring-blue-500"><option value="">Seleccionar...</option></select>
         </div>
-        <button onclick="abrirWidgetGaleria()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Subir Archivos</button>
+        <button type="button" data-action="widget-galeria" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Subir Archivos</button>
       </div>
       <div class="p-6 flex-1 overflow-y-auto bg-white"><div id="modal-grid-fotos" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-4"></div></div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR PUBLICACIÓN DE LA COLA -->
+  <div id="modal-editar-post" class="fixed inset-0 bg-gray-900/60 z-[70] hidden flex justify-center items-center backdrop-blur-sm p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b flex justify-between items-start bg-white shrink-0">
+        <div>
+          <h3 class="text-lg font-bold text-gray-800">Editar publicación</h3>
+          <p id="ep-sub" class="text-xs text-gray-500 mt-0.5"></p>
+        </div>
+        <button type="button" data-action="cerrar-editar-post" aria-label="Cerrar" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-6 space-y-5 bg-gray-50">
+        <p id="ep-aviso-enviado" class="hidden text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Esta publicación ya se envió a Instagram: los cambios no modifican lo que ya está publicado.</p>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-gray-700">Medios <span class="font-normal text-gray-500">(arrastrá para cambiar el orden)</span></span>
+            <span id="ep-contador" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold">0 archivos</span>
+          </div>
+          <div class="relative bg-white border border-gray-200 rounded-lg p-3 min-h-[7rem]">
+            <div id="ep-medios" class="flex flex-wrap gap-3"></div>
+            <p id="ep-vacio" class="hidden text-sm text-red-500 text-center py-6">Quitaste todos los archivos. Necesitás dejar al menos uno para guardar.</p>
+          </div>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div>
+            <label for="ep-estado" class="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
+            <select id="ep-estado" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm bg-white"></select>
+          </div>
+          <div class="sm:col-span-2">
+            <span class="block text-sm font-semibold text-gray-700 mb-1">Fecha de publicación</span>
+            <p id="ep-fecha" class="px-3 py-2 text-sm text-gray-600 bg-white border border-gray-200 rounded">—</p>
+          </div>
+        </div>
+        <div>
+          <label for="ep-pie" class="block text-sm font-semibold text-gray-700 mb-1">Pie de foto</label>
+          <textarea id="ep-pie" rows="6" maxlength="2200" placeholder="Si lo dejás vacío, la Inteligencia Artificial genera el texto al publicar." class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 resize-y"></textarea>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t bg-white flex justify-end gap-3 shrink-0">
+        <button type="button" data-action="cerrar-editar-post" class="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm font-medium">Cancelar</button>
+        <button type="button" id="btn-guardar-edicion-post" data-action="guardar-edicion-post" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow-sm text-sm font-medium transition-colors">Guardar cambios</button>
+      </div>
     </div>
   </div>
 
   <!-- MODAL: EDITAR PRODUCTO -->
   <div id="modal-editar" class="fixed inset-0 bg-gray-900/60 z-[70] hidden flex justify-center items-center backdrop-blur-sm">
     <div class="bg-white rounded-xl shadow-xl w-96 flex flex-col overflow-hidden">
-      <div class="px-6 py-4 border-b bg-white flex justify-between items-center"><h3 class="font-bold text-gray-800">Editar Producto</h3><button onclick="cerrarModalEditar()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="px-6 py-4 border-b bg-white flex justify-between items-center"><h3 class="font-bold text-gray-800">Editar Producto</h3><button type="button" data-action="cerrar-editar" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="p-6 space-y-4">
         <input type="hidden" id="ed-sku">
-        <div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" id="ed-nombre" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
+        <div><label for="ed-nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" id="ed-nombre" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+          <label for="ed-estado" class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
           <select id="ed-estado" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm bg-white">
-            <option value="Activo">Activo</option>
-            <option value="Inactivo">Inactivo</option>
-            <option value="Borrador">Borrador</option>
+            <option value="Activo">Activo</option><option value="Inactivo">Inactivo</option><option value="Borrador">Borrador</option>
           </select>
         </div>
-        <div><label class="block text-sm font-medium text-gray-700 mb-1">Stock</label><input type="number" id="ed-stock" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
+        <div><label for="ed-stock" class="block text-sm font-medium text-gray-700 mb-1">Stock</label><input type="number" id="ed-stock" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
       </div>
-      <div class="px-6 py-4 bg-gray-50 border-t flex justify-end gap-2"><button onclick="cerrarModalEditar()" class="px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">Cancelar</button><button onclick="guardarEdicionProducto()" class="px-4 py-2 bg-blue-600 text-white rounded shadow-sm text-sm hover:bg-blue-700">Guardar</button></div>
+      <div class="px-6 py-4 bg-gray-50 border-t flex justify-end gap-2"><button type="button" data-action="cerrar-editar" class="px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">Cancelar</button><button type="button" data-action="guardar-edicion" class="px-4 py-2 bg-blue-600 text-white rounded shadow-sm text-sm hover:bg-blue-700">Guardar</button></div>
     </div>
   </div>
 
-  <script>
-    let state = { productos: [], categorias: [], medios: [], cola: [], config: {}, productoActivoManager: null, categoriaActivaManager: null, productoActivoModal: null };
-    let sortableLibrary, sortableCarousel, cloudWidget;
-    let contextoSubida = 'galeria'; 
-    let categoriaTempUpload = ''; 
-    let imagenesNuevasTemp = []; 
+<!-- ========================================================================= -->
+<!-- SCRIPT 1 — NÚCLEO Y AUTENTICACIÓN                                          -->
+<!-- Es independiente del script de la app: si la app falla, el login,          -->
+<!-- el registro y el botón de WhatsApp siguen funcionando.                     -->
+<!-- ========================================================================= -->
+<script>
+(function () {
+  'use strict';
 
-    function esVideo(url) { return url.includes('/video/upload/'); }
-    function obtenerThumbnail(url) { return esVideo(url) ? url.replace(/\.[^/.]+$/, ".jpg") : url; }
-    
-    // Función central para reproducir videos en los modales
-    function reproducirVideo(url) {
-      const modal = document.getElementById('modal-video');
-      const reproductor = document.getElementById('video-player');
-      reproductor.src = url;
-      modal.classList.replace('hidden', 'flex');
-      reproductor.play();
-    }
-    function cerrarVideo() {
-      const modal = document.getElementById('modal-video');
-      const reproductor = document.getElementById('video-player');
-      reproductor.pause();
-      reproductor.src = "";
-      modal.classList.replace('flex', 'hidden');
-    }
+  var TOKEN_KEY = 'am_token';
+  var tokenMemoria = null;
+  var configGlobal = {};
 
-    function showToast(mensaje, tipo = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      const bg = tipo === 'success' ? 'bg-green-50 border-green-200 text-green-800' : tipo === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-50 border-blue-200 text-blue-800';
-      const icon = tipo === 'success' ? 'fa-check-circle text-green-500' : tipo === 'error' ? 'fa-circle-exclamation text-red-500' : 'fa-info-circle text-blue-500';
-      toast.className = `flex items-center gap-3 p-4 border rounded-lg shadow-lg ${bg} toast-enter`;
-      toast.innerHTML = `<i class="fa-solid ${icon} text-lg"></i> <p class="text-sm font-medium">${mensaje}</p>`;
-      container.appendChild(toast);
-      setTimeout(() => { toast.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => toast.remove(), 300); }, 3000);
-    }
+  function $(id) { return document.getElementById(id); }
 
-    // LISTENER DEL SELECTOR DE EMOJIS
-    document.getElementById('btn-emoji').addEventListener('click', () => {
-      document.getElementById('emoji-popup').classList.toggle('hidden');
-    });
-    document.querySelector('emoji-picker').addEventListener('emoji-click', event => {
-        const textarea = document.getElementById('inp-pie-foto'); 
-        const start = textarea.selectionStart; 
-        const text = textarea.value;
-        textarea.value = text.substring(0, start) + event.detail.unicode + text.substring(textarea.selectionEnd);
-        textarea.selectionStart = textarea.selectionEnd = start + event.detail.unicode.length; 
-        textarea.focus();
-        document.getElementById('emoji-popup').classList.add('hidden');
-    });
-    // Ocultar si se clickea afuera
-    document.addEventListener('click', (e) => {
-        const popup = document.getElementById('emoji-popup'); 
-        const btn = document.getElementById('btn-emoji');
-        if(!popup.contains(e.target) && !btn.contains(e.target) && !popup.classList.contains('hidden')) {
-          popup.classList.add('hidden');
+  // ---- Toasts (compartido con la app) ----
+  function showToast(mensaje, tipo) {
+    tipo = tipo || 'success';
+    var contenedor = $('toast-container');
+    if (!contenedor) return;
+    var colores = { success: 'bg-green-50 border-green-200 text-green-800', error: 'bg-red-50 border-red-200 text-red-800', info: 'bg-blue-50 border-blue-200 text-blue-800' };
+    var iconos = { success: 'fa-check-circle text-green-500', error: 'fa-circle-exclamation text-red-500', info: 'fa-info-circle text-blue-500' };
+    var toast = document.createElement('div');
+    toast.className = 'flex items-center gap-3 p-4 border rounded-lg shadow-lg toast-enter ' + (colores[tipo] || colores.info);
+    var i = document.createElement('i');
+    i.className = 'fa-solid text-lg ' + (iconos[tipo] || iconos.info);
+    var p = document.createElement('p');
+    p.className = 'text-sm font-medium';
+    p.textContent = mensaje;
+    toast.appendChild(i); toast.appendChild(p);
+    contenedor.appendChild(toast);
+    setTimeout(function () {
+      toast.classList.remove('toast-enter'); toast.classList.add('toast-exit');
+      setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+    }, 3500);
+  }
+
+  // ---- Token de sesión ----
+  //   "Mantener la sesión" tildado    -> localStorage (sobrevive al cerrar el navegador)
+  //   "Mantener la sesión" sin tildar -> sessionStorage (se borra al cerrar la pestaña)
+  // Si el navegador bloquea el almacenamiento, hay respaldo en memoria.
+  var EMAIL_KEY = 'am_email_recordado';
+  function getToken() {
+    if (tokenMemoria) return tokenMemoria;
+    try { return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || null; } catch (e) { return null; }
+  }
+  function setToken(t, persistir) {
+    tokenMemoria = t || null;
+    try {
+      localStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(TOKEN_KEY);
+      if (t) (persistir === false ? sessionStorage : localStorage).setItem(TOKEN_KEY, t);
+    } catch (e) { /* bloqueado: se usa solo memoria */ }
+  }
+  // "Recordar usuario": se guarda solo el email, nunca la contraseña.
+  function getEmailRecordado() {
+    try { return localStorage.getItem(EMAIL_KEY) || ''; } catch (e) { return ''; }
+  }
+  function setEmailRecordado(email) {
+    try { if (email) localStorage.setItem(EMAIL_KEY, email); else localStorage.removeItem(EMAIL_KEY); } catch (e) { /* ignorar */ }
+  }
+
+  function servidorDisponible() {
+    return typeof google !== 'undefined' && google && google.script && google.script.run;
+  }
+  function mensajeDe(err, defecto) {
+    return (err && err.message) ? err.message : defecto;
+  }
+  function mostrarError(id, msg) {
+    var e = $(id);
+    if (!e) return;
+    if (!msg) { e.classList.add('hidden'); e.textContent = ''; return; }
+    e.textContent = msg; e.classList.remove('hidden');
+  }
+  function ocultarLoader() { $('loader').classList.add('hidden'); }
+
+  // ---- Pantallas de auth ----
+  function mostrarPantalla(nombre) {
+    ['login', 'registro', 'estado'].forEach(function (p) { $('auth-' + p).classList.add('hidden'); });
+    $('auth-' + nombre).classList.remove('hidden');
+  }
+
+  function mostrarEstado(estado, recienRegistrado) {
+    var icono = $('auth-estado-icon'), titulo = $('auth-estado-titulo'), mensaje = $('auth-estado-mensaje');
+    if (estado === 'Suspendido') {
+      icono.className = 'fa-solid fa-circle-exclamation text-3xl text-red-400 mb-3';
+      titulo.textContent = 'Cuenta suspendida';
+      mensaje.textContent = configGlobal.MENSAJE_SUSPENDIDO || 'Tu cuenta está inactiva. Contactanos para reactivarla.';
+    } else {
+      icono.className = 'fa-solid fa-clock text-3xl text-orange-400 mb-3';
+      titulo.textContent = recienRegistrado ? '¡Cuenta creada!' : 'Cuenta en revisión';
+      mensaje.textContent = configGlobal.MENSAJE_PENDIENTE_APROBACION || 'Tu cuenta está en revisión, te contactamos pronto.';
+    }
+    mostrarPantalla('estado');
+  }
+
+  // ---- WhatsApp ----
+  function linkWhatsapp() {
+    var numero = String(configGlobal.WHATSAPP_NUMERO || '').replace(/\D/g, '');
+    if (!numero) return '';
+    if (numero.length === 10) numero = '549' + numero; // respaldo: el backend ya lo normaliza
+    var texto = configGlobal.WHATSAPP_MENSAJE_DEFAULT || '';
+    return 'https://wa.me/' + numero + (texto ? '?text=' + encodeURIComponent(texto) : '');
+  }
+  function actualizarWhatsapp() {
+    var url = linkWhatsapp() || '#';
+    var enlaces = document.querySelectorAll('[data-whatsapp]');
+    for (var i = 0; i < enlaces.length; i++) enlaces[i].setAttribute('href', url);
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('[data-whatsapp]') : null;
+    if (a && !linkWhatsapp()) {
+      e.preventDefault();
+      showToast('El número de contacto todavía no está disponible. Probá de nuevo en unos segundos.', 'info');
+    }
+  });
+
+  function cargarConfigGlobal() {
+    if (!servidorDisponible()) return;
+    google.script.run
+      .withSuccessHandler(function (cfg) { configGlobal = cfg || {}; actualizarWhatsapp(); })
+      .withFailureHandler(function () { /* se sigue con los textos por defecto */ })
+      .obtenerConfiguracionGlobal();
+  }
+
+  // ---- Entrada a la app con sesión válida ----
+  function entrar() {
+    if (!servidorDisponible()) { ocultarLoader(); return; }
+    $('loader').classList.remove('hidden');
+    google.script.run
+      .withSuccessHandler(function (data) {
+        if (!window.App || typeof window.App.iniciar !== 'function') {
+          ocultarLoader(); mostrarPantalla('login');
+          mostrarError('login-error', 'No se pudo cargar la aplicación. Recargá la página con Ctrl+F5.');
+          return;
         }
+        $('auth-overlay').classList.add('hidden');
+        $('app-container').classList.remove('hidden');
+        try { window.App.iniciar(data); }
+        catch (e) { showToast('Error al iniciar la aplicación: ' + mensajeDe(e, ''), 'error'); }
+        ocultarLoader();
+      })
+      .withFailureHandler(function (err) {
+        var msg = mensajeDe(err, '');
+        ocultarLoader(); mostrarPantalla('login');
+        if (msg.indexOf('Sesión') !== -1) setToken(null);   // token vencido: se vuelve a pedir login
+        else mostrarError('login-error', msg || 'No se pudo cargar tu workspace.');
+      })
+      .getInitialData(getToken());
+  }
+
+  function hacerLogin() {
+    var email = $('login-email').value.trim();
+    var password = $('login-password').value;
+    var mantener = $('login-mantener') ? $('login-mantener').checked : true;
+    var recordar = $('login-recordar') ? $('login-recordar').checked : false;
+    mostrarError('login-error', '');
+    if (!email || !password) return mostrarError('login-error', 'Completá email y contraseña.');
+    if (!servidorDisponible()) return mostrarError('login-error', 'No hay conexión con el servidor. Abrí la app desde su URL de Apps Script.');
+
+    var btn = $('btn-login');
+    btn.disabled = true; btn.textContent = 'Ingresando...';
+    google.script.run
+      .withSuccessHandler(function (res) {
+        btn.disabled = false; btn.textContent = 'Iniciar sesión';
+        setEmailRecordado(recordar ? email : '');   // solo llega acá con credenciales correctas
+        if (res && res.ok) { setToken(res.token, mantener); $('login-password').value = ''; entrar(); }
+        else mostrarEstado(res && res.estado, false);
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.textContent = 'Iniciar sesión';
+        mostrarError('login-error', mensajeDe(err, 'Error al iniciar sesión.'));
+      })
+      .loginUsuario(email, password);
+  }
+
+  function hacerRegistro() {
+    var nombre = $('reg-nombre').value.trim();
+    var email = $('reg-email').value.trim();
+    var telefono = $('reg-telefono').value.trim();
+    var password = $('reg-password').value;
+    var password2 = $('reg-password2').value;
+    mostrarError('registro-error', '');
+
+    if (!nombre || !email || !telefono || !password) return mostrarError('registro-error', 'Todos los campos son obligatorios.');
+    if (password.length < 6) return mostrarError('registro-error', 'La contraseña debe tener al menos 6 caracteres.');
+    if (password !== password2) return mostrarError('registro-error', 'Las contraseñas no coinciden.');
+    if (!servidorDisponible()) return mostrarError('registro-error', 'No hay conexión con el servidor. Abrí la app desde su URL de Apps Script.');
+
+    var btn = $('btn-registro');
+    btn.disabled = true; btn.textContent = 'Creando cuenta...';
+    google.script.run
+      .withSuccessHandler(function () {
+        btn.disabled = false; btn.textContent = 'Crear cuenta';
+        ['reg-nombre', 'reg-email', 'reg-telefono', 'reg-password', 'reg-password2'].forEach(function (id) { $(id).value = ''; });
+        mostrarEstado('Pendiente_Aprobacion', true);
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.textContent = 'Crear cuenta';
+        mostrarError('registro-error', mensajeDe(err, 'Error al registrar la cuenta.'));
+      })
+      .registrarUsuario({ nombreNegocio: nombre, email: email, telefono: telefono, password: password });
+  }
+
+  // Vuelve a la pantalla de login SIN recargar la página: recargar dentro del iframe de
+  // Apps Script puede dejar la pantalla en blanco. Además borra de memoria los datos del usuario.
+  function volverAlLogin() {
+    if (window.App && typeof window.App.reiniciar === 'function') {
+      try { window.App.reiniciar(); } catch (e) { /* el login se muestra igual */ }
+    }
+    ocultarLoader();
+    $('app-container').classList.add('hidden');
+    var info = $('info-overlay'); if (info) info.classList.add('hidden');
+    ['login-password', 'reg-password', 'reg-password2'].forEach(function (id) {
+      var n = $(id); if (!n) return;
+      n.value = ''; n.type = 'password';
+    });
+    var ojos = document.querySelectorAll('[data-toggle-pass]');
+    for (var i = 0; i < ojos.length; i++) {
+      var ic = ojos[i].querySelector('i'); if (ic) ic.className = 'fa-regular fa-eye';
+      ojos[i].setAttribute('aria-pressed', 'false'); ojos[i].setAttribute('aria-label', 'Mostrar contraseña');
+    }
+    mostrarError('login-error', ''); mostrarError('registro-error', '');
+    var recordado = getEmailRecordado();
+    $('login-email').value = recordado;
+    if ($('login-recordar')) $('login-recordar').checked = !!recordado;
+    mostrarPantalla('login');
+    $('auth-overlay').classList.remove('hidden');
+    try { $(recordado ? 'login-password' : 'login-email').focus(); } catch (e) { /* sin foco */ }
+  }
+
+  function cerrarSesion() {
+    var t = getToken();
+    setToken(null);
+    volverAlLogin();
+    // El servidor invalida el token en segundo plano; el token local ya no existe.
+    if (t && servidorDisponible()) {
+      google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {}).logoutUsuario(t);
+    }
+  }
+
+  // ---- Eventos ----
+  function on(id, evento, fn) { var n = $(id); if (n) n.addEventListener(evento, fn); }
+  function enter(ids, fn) {
+    ids.forEach(function (id) { on(id, 'keydown', function (e) { if (e.key === 'Enter') fn(); }); });
+  }
+  on('tab-ir-registro', 'click', function () { mostrarError('login-error', ''); mostrarPantalla('registro'); });
+  on('tab-ir-login', 'click', function () { mostrarError('registro-error', ''); mostrarPantalla('login'); });
+  on('btn-volver-login', 'click', function () { mostrarPantalla('login'); });
+  // Los formularios usan <form>: así el navegador puede ofrecer guardar la contraseña
+  // y Enter envía el formulario sin listeners extra.
+  on('form-login', 'submit', function (e) { e.preventDefault(); hacerLogin(); });
+  on('form-registro', 'submit', function (e) { e.preventDefault(); hacerRegistro(); });
+
+  // Ver / ocultar contraseña (un solo listener para los tres campos)
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('[data-toggle-pass]') : null;
+    if (!b) return;
+    var inp = $(b.getAttribute('data-toggle-pass'));
+    if (!inp) return;
+    var ver = inp.type === 'password';
+    inp.type = ver ? 'text' : 'password';
+    var ic = b.querySelector('i'); if (ic) ic.className = ver ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+    b.setAttribute('aria-pressed', ver ? 'true' : 'false');
+    b.setAttribute('aria-label', ver ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    inp.focus();
+  });
+
+  // Pantalla "¿Qué es esto?"
+  function abrirInfo() { var n = $('info-overlay'); n.classList.remove('hidden'); n.scrollTop = 0; }
+  function cerrarInfo() { $('info-overlay').classList.add('hidden'); }
+  on('btn-que-es', 'click', abrirInfo);
+  on('btn-que-es-top', 'click', abrirInfo);
+  on('btn-info-cerrar', 'click', cerrarInfo);
+  on('btn-info-login', 'click', function () { cerrarInfo(); mostrarPantalla('login'); });
+  on('btn-info-registro', 'click', function () { cerrarInfo(); mostrarPantalla('registro'); });
+  on('btn-info-registro-2', 'click', function () { cerrarInfo(); mostrarPantalla('registro'); });
+  document.addEventListener('keydown', function (e) {
+    var n = $('info-overlay');
+    if (e.key === 'Escape' && n && !n.classList.contains('hidden')) cerrarInfo();
+  });
+
+  // API para el script de la app
+  window.showToast = showToast;
+  window.Auth = { getToken: getToken, cerrarSesion: cerrarSesion, getConfigGlobal: function () { return configGlobal; } };
+
+  // ---- Arranque ----
+  (function () {   // "Recordar usuario": completa el email guardado
+    var r = getEmailRecordado();
+    if (r) { $('login-email').value = r; $('login-recordar').checked = true; }
+  })();
+  cargarConfigGlobal();
+  if (getToken() && servidorDisponible()) entrar(); else ocultarLoader();
+})();
+</script>
+
+<!-- ========================================================================= -->
+<!-- SCRIPT 2 — APLICACIÓN (inventario, diseñador de posts, cola, config)      -->
+<!-- ========================================================================= -->
+<script>
+(function () {
+  'use strict';
+
+  var state = { productos: [], categorias: [], medios: [], cola: [], config: {}, nombreNegocio: '',
+                productoActivoManager: null, categoriaActivaManager: null, productoActivoModal: null };
+  var sortableLibrary = null, sortableCarousel = null, cloudWidget = null;
+  var contextoSubida = 'galeria', categoriaTempUpload = '', imagenesNuevasTemp = [];
+
+  // ------------------------------------------------------------------
+  // Utilidades
+  // ------------------------------------------------------------------
+  function $(id) { return document.getElementById(id); }
+  function toast(msg, tipo) { window.showToast(msg, tipo); }
+  function loader(visible) { $('loader').classList[visible ? 'remove' : 'add']('hidden'); }
+
+  // Crea un elemento sin usar innerHTML (evita problemas de comillas y XSS).
+  //   props: cls, text, on<evento>: fn, o cualquier atributo
+  function el(tag, props, hijos) {
+    var e = document.createElement(tag);
+    if (props) Object.keys(props).forEach(function (k) {
+      var v = props[k];
+      if (v === null || v === undefined) return;
+      if (k === 'cls') e.className = v;
+      else if (k === 'text') e.textContent = v;
+      else e.setAttribute(k, v);
+    });
+    (hijos || []).forEach(function (h) {
+      if (h === null || h === undefined || h === '') return;
+      e.appendChild(typeof h === 'string' ? document.createTextNode(h) : h);
+    });
+    return e;
+  }
+  function icono(clases) { return el('i', { cls: clases }); }
+  function vaciar(nodo) { while (nodo.firstChild) nodo.removeChild(nodo.firstChild); }
+  function mensajeVacio(nodo, texto, extra) {
+    vaciar(nodo);
+    nodo.appendChild(el('div', { cls: 'col-span-full text-center text-gray-400 text-sm mt-10 ' + (extra || ''), text: texto }));
+  }
+
+  function token() { return window.Auth.getToken(); }
+
+  // Llama a una función del servidor pasando siempre el token de sesión.
+  function rpc(nombre, args, ok, fallo) {
+    var runner = google.script.run
+      .withSuccessHandler(ok)
+      .withFailureHandler(function (err) { if (fallo) fallo(err); else manejarError(err); });
+    runner[nombre].apply(runner, [token()].concat(args || []));
+  }
+
+  function manejarError(err, porDefecto) {
+    var msg = (err && err.message) ? err.message : (porDefecto || 'Ocurrió un error');
+    toast(msg, 'error');
+    if (msg.indexOf('Sesión') !== -1) setTimeout(window.Auth.cerrarSesion, 1500);
+  }
+
+  function esVideo(url) { return String(url).indexOf('/video/upload/') !== -1; }
+  function obtenerThumbnail(url) { return esVideo(url) ? String(url).replace(/\.[^/.]+$/, '.jpg') : url; }
+
+  function botonPlay(url, tamano) {
+    return el('div', { cls: 'absolute inset-0 flex items-center justify-center cursor-pointer bg-black/10 hover:bg-black/30 transition-colors z-10', 'data-play': url },
+      [icono('fa-solid fa-circle-play text-white/90 drop-shadow-md ' + tamano)]);
+  }
+
+  function reproducirVideo(url) {
+    var reproductor = $('video-player');
+    reproductor.src = url;
+    $('modal-video').classList.replace('hidden', 'flex');
+    var p = reproductor.play(); if (p && p.catch) p.catch(function () {});
+  }
+  function cerrarVideo() {
+    var reproductor = $('video-player');
+    reproductor.pause(); reproductor.removeAttribute('src'); reproductor.load();
+    $('modal-video').classList.replace('flex', 'hidden');
+  }
+
+  function mezclar(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+
+  // ------------------------------------------------------------------
+  // Navegación
+  // ------------------------------------------------------------------
+  function cambiarVista(vista) {
+    var items = document.querySelectorAll('.nav-item');
+    for (var i = 0; i < items.length; i++) items[i].classList.remove('active');
+    $('nav-' + vista).classList.add('active');
+    ['productos', 'manager', 'cola', 'config'].forEach(function (v) {
+      $('vista-' + v).classList.add('hidden'); $('vista-' + v).classList.remove('flex');
+    });
+    $('vista-' + vista).classList.remove('hidden'); $('vista-' + vista).classList.add('flex');
+    var titulos = { productos: 'Gestión de Inventario', manager: 'Diseñador de Posts', cola: 'Cola de Envíos', config: 'Configuración del Sistema' };
+    $('header-title').textContent = titulos[vista];
+    if (vista === 'config') cambiarTabConfig(tabConfigActual);
+  }
+
+  function filtrarTabla(idTabla, query) {
+    var q = query.toLowerCase();
+    var filas = $(idTabla).getElementsByTagName('tr');
+    for (var i = 0; i < filas.length; i++) {
+      filas[i].style.display = (filas[i].textContent || '').toLowerCase().indexOf(q) > -1 ? '' : 'none';
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Inventario
+  // ------------------------------------------------------------------
+  function celda(cls, hijos) { return el('td', { cls: 'px-6 py-4 whitespace-nowrap ' + cls }, hijos); }
+  function botonAccion(cls, titulo, icon, accion, arg) {
+    return el('button', { type: 'button', cls: cls, title: titulo, 'data-action': accion, 'data-arg': arg }, [icono(icon)]);
+  }
+
+  function renderTablaProductos() {
+    var tbody = $('tabla-productos'); vaciar(tbody);
+    state.productos.forEach(function (p) {
+      var color = p.estado === 'Activo' ? 'bg-green-100 text-green-700' : (p.estado === 'Inactivo' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700');
+      tbody.appendChild(el('tr', null, [
+        celda('text-sm font-medium text-gray-900', [String(p.sku)]),
+        celda('text-sm text-gray-600', [String(p.nombre)]),
+        celda('text-sm text-gray-600', [el('span', { cls: 'px-2.5 py-1 rounded-md text-xs font-semibold ' + color, text: p.estado })]),
+        celda('text-sm text-gray-600 font-semibold', [String(p.stock)]),
+        celda('text-right text-sm', [
+          botonAccion('bg-blue-50 text-blue-600 p-2 rounded hover:bg-blue-100 mr-2', 'Galería', 'fa-regular fa-images', 'galeria', p.sku),
+          botonAccion('bg-orange-50 text-orange-500 p-2 rounded hover:bg-orange-100 mr-2', 'Editar', 'fa-solid fa-pen', 'editar', p.sku),
+          botonAccion('bg-red-50 text-red-500 p-2 rounded hover:bg-red-100', 'Eliminar', 'fa-solid fa-trash', 'del-producto', p.sku)
+        ])
+      ]));
+    });
+  }
+
+  function eliminarProductoFront(sku) {
+    if (!confirm('⚠️ ATENCIÓN: Al eliminar el producto ' + sku + ' se borrarán también TODOS sus archivos multimedia y las publicaciones en la cola.\n\n¿Estás seguro de continuar?')) return;
+    loader(true);
+    rpc('eliminarProducto', [sku], function (skuEliminado) {
+      state.productos = state.productos.filter(function (p) { return p.sku !== skuEliminado; });
+      state.medios = state.medios.filter(function (m) { return m.sku !== skuEliminado; });
+      state.cola = state.cola.filter(function (c) { return c.sku !== skuEliminado; });
+      renderTablaProductos(); renderTablaCola(); actualizarDatalistManager();
+      if (state.productoActivoManager === skuEliminado) {
+        state.productoActivoManager = null; $('input-producto').value = ''; renderizarBibliotecaManager();
+      }
+      loader(false); toast('Producto y sus datos asociados eliminados');
+    }, function (err) { loader(false); manejarError(err, 'Error al eliminar el producto'); });
+  }
+
+  // --- Nuevo producto ---
+  function poblarSelectCategoriasModales() {
+    var a = $('np-select-cat'), b = $('modal-select-cat');
+    [a, b].forEach(function (s) { vaciar(s); s.add(new Option('Seleccionar...', '')); });
+    state.categorias.forEach(function (c) { a.add(new Option(c.nombre, c.id)); b.add(new Option(c.nombre, c.id)); });
+  }
+
+  function abrirModalNuevoProducto() {
+    imagenesNuevasTemp = [];
+    $('np-sku').value = ''; $('np-nombre').value = ''; $('np-stock').value = '0'; $('np-estado').value = 'Activo'; $('np-select-cat').value = '';
+    renderizarFotosNuevoProducto();
+    $('modal-nuevo-producto').classList.remove('hidden');
+  }
+  function cerrarModalNuevoProducto() { $('modal-nuevo-producto').classList.add('hidden'); }
+
+  function renderizarFotosNuevoProducto() {
+    var grid = $('np-grid-fotos'), msg = $('np-empty-msg');
+    var previos = grid.querySelectorAll('.np-foto-temp');
+    for (var i = 0; i < previos.length; i++) grid.removeChild(previos[i]);
+    msg.style.display = imagenesNuevasTemp.length === 0 ? 'block' : 'none';
+    imagenesNuevasTemp.forEach(function (obj, idx) {
+      var hijos = [
+        el('img', { src: obtenerThumbnail(obj.url), cls: 'w-full h-full object-cover rounded' }),
+        el('span', { cls: 'absolute bottom-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none', text: obj.categoria }),
+        el('button', { type: 'button', cls: 'absolute top-1 right-1 bg-red-600/90 text-white rounded p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity z-20', 'data-action': 'quitar-foto-temp', 'data-arg': String(idx) }, [icono('fa-solid fa-trash')])
+      ];
+      if (esVideo(obj.url)) hijos.splice(1, 0, botonPlay(obj.url, 'text-3xl'));
+      grid.appendChild(el('div', { cls: 'np-foto-temp bg-white rounded border p-1 aspect-square relative group overflow-hidden' }, hijos));
+    });
+  }
+
+  function abrirWidgetNuevoProducto() {
+    var cat = $('np-select-cat').value;
+    if (!cat) return toast('Seleccioná primero el tipo de medio a subir', 'error');
+    if (!cloudWidget) return toast('Falta configurar Cloudinary (pestaña Configuración)', 'error');
+    contextoSubida = 'nuevo'; categoriaTempUpload = cat; cloudWidget.open();
+  }
+
+  function guardarNuevoProducto() {
+    var sku = $('np-sku').value.trim(), nombre = $('np-nombre').value.trim();
+    if (!sku || !nombre) return toast('SKU y Nombre son obligatorios', 'error');
+    var btn = $('btn-guardar-nuevo'); btn.disabled = true; btn.textContent = 'Guardando...';
+    function reset() { btn.disabled = false; btn.textContent = 'Guardar Producto'; }
+    rpc('crearProductoConImagenes', [{ sku: sku, nombre: nombre, stock: $('np-stock').value || 0, estado: $('np-estado').value, imagenes: imagenesNuevasTemp }],
+      function (res) {
+        state.productos.push(res.producto); state.medios = state.medios.concat(res.mediosNuevos);
+        renderTablaProductos(); actualizarDatalistManager(); cerrarModalNuevoProducto(); reset();
+        toast('Producto creado exitosamente');
+      },
+      function (err) { reset(); manejarError(err, 'Error al crear el producto'); });
+  }
+
+  // --- Editar ---
+  function abrirModalEditar(sku) {
+    var prod = state.productos.filter(function (p) { return p.sku === sku; })[0];
+    if (!prod) return;
+    $('ed-sku').value = prod.sku; $('ed-nombre').value = prod.nombre; $('ed-stock').value = prod.stock; $('ed-estado').value = prod.estado || 'Activo';
+    $('modal-editar').classList.remove('hidden');
+  }
+  function cerrarModalEditar() { $('modal-editar').classList.add('hidden'); }
+  function guardarEdicionProducto() {
+    var sku = $('ed-sku').value;
+    loader(true);
+    rpc('actualizarProducto', [sku, $('ed-nombre').value, $('ed-stock').value, $('ed-estado').value],
+      function (res) {
+        var prod = state.productos.filter(function (p) { return p.sku === sku; })[0];
+        if (prod) { prod.nombre = res.nombre; prod.stock = res.stock; prod.estado = res.estado; }
+        renderTablaProductos(); actualizarDatalistManager(); cerrarModalEditar(); loader(false); toast('Producto actualizado');
+      },
+      function (err) { loader(false); manejarError(err, 'Error al actualizar'); });
+  }
+
+  // --- Galería del producto ---
+  function abrirModalGaleria(sku) {
+    state.productoActivoModal = sku;
+    $('modal-titulo').textContent = 'Galería: ' + sku;
+    $('modal-select-cat').value = '';
+    renderizarFotosModal();
+    $('modal-galeria').classList.remove('hidden');
+  }
+  function cerrarModalGaleria() {
+    $('modal-galeria').classList.add('hidden'); state.productoActivoModal = null; renderizarBibliotecaManager();
+  }
+  function abrirWidgetGaleria() {
+    if (!$('modal-select-cat').value) return toast('Seleccioná el tipo de medio antes de subir', 'error');
+    if (!cloudWidget) return toast('Falta configurar Cloudinary (pestaña Configuración)', 'error');
+    contextoSubida = 'galeria'; cloudWidget.open();
+  }
+  function renderizarFotosModal() {
+    var grid = $('modal-grid-fotos'); vaciar(grid);
+    var fotos = state.medios.filter(function (m) { return m.sku === state.productoActivoModal; });
+    if (fotos.length === 0) return mensajeVacio(grid, 'No hay archivos registrados.', 'text-gray-500');
+    fotos.forEach(function (foto) {
+      var hijos = [
+        el('img', { src: obtenerThumbnail(foto.url), cls: 'w-full h-full object-cover rounded pointer-events-none' }),
+        el('span', { cls: 'absolute top-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none', text: foto.categoria }),
+        el('button', { type: 'button', cls: 'absolute inset-0 bg-red-600/90 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded z-20', 'data-action': 'del-medio', 'data-arg': foto.id }, [icono('fa-solid fa-trash text-xl')])
+      ];
+      if (esVideo(foto.url)) hijos.splice(1, 0, botonPlay(foto.url, 'text-3xl'));
+      grid.appendChild(el('div', { cls: 'bg-white rounded border shadow-sm p-1 aspect-square relative group overflow-hidden' }, hijos));
+    });
+  }
+  function eliminarMedioFront(idMedio) {
+    if (!confirm('¿Borrar este archivo definitivamente?')) return;
+    rpc('eliminarMedio', [idMedio], function (idBorrado) {
+      state.medios = state.medios.filter(function (m) { return m.id !== idBorrado; });
+      renderizarFotosModal(); toast('Archivo eliminado');
+    }, function (err) { manejarError(err, 'Error al eliminar el archivo'); });
+  }
+
+  // --- Cloudinary ---
+  function initCloudinary() {
+    cloudWidget = null;
+    if (typeof cloudinary === 'undefined') return;
+    if (!state.config.CLOUDINARY_CLOUD_NAME || !state.config.CLOUDINARY_UPLOAD_PRESET) return;
+    cloudWidget = cloudinary.createUploadWidget({
+      cloudName: state.config.CLOUDINARY_CLOUD_NAME, uploadPreset: state.config.CLOUDINARY_UPLOAD_PRESET,
+      sources: ['local', 'url'], multiple: true, resourceType: 'auto'
+    }, function (error, result) {
+      if (error || !result || result.event !== 'success') return;
+      var url = result.info.secure_url;
+      if (contextoSubida === 'nuevo') {
+        imagenesNuevasTemp.push({ url: url, categoria: categoriaTempUpload }); renderizarFotosNuevoProducto();
+      } else if (contextoSubida === 'galeria') {
+        rpc('guardarNuevoMedio', [url, state.productoActivoModal, $('modal-select-cat').value], function (nuevo) {
+          state.medios.push(nuevo); renderizarFotosModal();
+        }, function (err) { manejarError(err, 'Error al guardar el archivo'); });
+      }
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // Diseñador de posts
+  // ------------------------------------------------------------------
+  // --- Combo de artículos: se escribe para filtrar y se elige de la lista desplegable ---
+  var comboResultados = [], comboActivo = -1;
+
+  function normalizarTexto(s) {
+    return String(s === null || s === undefined ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  function productoPorSku(sku) { return state.productos.filter(function (p) { return p.sku === sku; })[0] || null; }
+  function etiquetaProducto(p) { return p.sku + ' - ' + p.nombre; }
+  function comboAbierto() { return !$('combo-productos-lista').classList.contains('hidden'); }
+  function refrescarBotonLimpiarCombo() { $('combo-productos-limpiar').classList.toggle('hidden', !$('input-producto').value); }
+
+  // Si el campo muestra el artículo ya elegido, la lista abre completa (no filtrada por ese texto).
+  function filtroComboActual() {
+    var inp = $('input-producto'), actual = productoPorSku(state.productoActivoManager);
+    return (actual && inp.value === etiquetaProducto(actual)) ? '' : inp.value;
+  }
+
+  function abrirCombo(filtro) {
+    var lista = $('combo-productos-lista'), q = normalizarTexto(filtro);
+    vaciar(lista);
+    comboResultados = state.productos.filter(function (p) { return !q || normalizarTexto(p.sku + ' ' + p.nombre).indexOf(q) !== -1; });
+    comboActivo = -1;
+    if (comboResultados.length === 0) {
+      lista.appendChild(el('div', { cls: 'px-3 py-2 text-sm text-gray-400', text: state.productos.length ? 'Sin coincidencias' : 'Todavía no hay artículos cargados' }));
+    }
+    comboResultados.forEach(function (p, i) {
+      var elegido = p.sku === state.productoActivoManager;
+      var hijos = [
+        el('span', { cls: 'font-semibold text-gray-800 shrink-0', text: p.sku }),
+        el('span', { cls: 'text-gray-500 truncate', text: p.nombre })
+      ];
+      if (p.estado && p.estado !== 'Activo') hijos.push(el('span', { cls: 'ml-auto shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500', text: p.estado }));
+      lista.appendChild(el('div', { role: 'option', id: 'combo-op-' + i, 'data-i': String(i), 'aria-selected': elegido ? 'true' : 'false',
+        cls: 'combo-item flex items-center gap-2 px-3 py-2 text-sm cursor-pointer' + (elegido ? ' bg-blue-50' : '') }, hijos));
+    });
+    lista.classList.remove('hidden');
+    $('input-producto').setAttribute('aria-expanded', 'true');
+  }
+
+  function cerrarCombo() {
+    $('combo-productos-lista').classList.add('hidden');
+    var inp = $('input-producto');
+    inp.setAttribute('aria-expanded', 'false'); inp.removeAttribute('aria-activedescendant');
+    comboActivo = -1;
+  }
+
+  function resaltarCombo(nuevo) {
+    var items = $('combo-productos-lista').querySelectorAll('.combo-item');
+    if (!items.length) return;
+    comboActivo = (nuevo + items.length) % items.length;
+    for (var i = 0; i < items.length; i++) items[i].classList.toggle('combo-item-activo', i === comboActivo);
+    items[comboActivo].scrollIntoView({ block: 'nearest' });
+    $('input-producto').setAttribute('aria-activedescendant', items[comboActivo].id);
+  }
+
+  function comboSeleccionar(p) {
+    var cambio = p.sku !== state.productoActivoManager;
+    $('input-producto').value = etiquetaProducto(p);
+    state.productoActivoManager = p.sku;
+    cerrarCombo(); refrescarBotonLimpiarCombo();
+    if (cambio) limpiarCarrusel();          // igual que antes: al cambiar de artículo se limpia la zona de edición
+    renderizarBibliotecaManager();
+  }
+
+  // Al salir del campo: si lo escrito coincide exacto con un artículo se elige; si no, vuelve a la selección anterior.
+  function comboRestaurar() {
+    var inp = $('input-producto'), texto = inp.value.trim().toLowerCase();
+    var exacto = texto ? state.productos.filter(function (p) { return p.sku.toLowerCase() === texto || etiquetaProducto(p).toLowerCase() === texto; })[0] : null;
+    if (exacto) comboSeleccionar(exacto);
+    else {
+      var actual = productoPorSku(state.productoActivoManager);
+      inp.value = actual ? etiquetaProducto(actual) : '';
+    }
+    cerrarCombo(); refrescarBotonLimpiarCombo();
+  }
+
+  // Lo llaman varias funciones (alta, edición y baja de productos): mantiene su nombre.
+  function actualizarDatalistManager() {
+    var inp = $('input-producto');
+    if (document.activeElement !== inp) {
+      var actual = productoPorSku(state.productoActivoManager);
+      inp.value = actual ? etiquetaProducto(actual) : '';
+    }
+    refrescarBotonLimpiarCombo();
+    if (comboAbierto()) abrirCombo(filtroComboActual());
+  }
+
+  function initComboProductos() {
+    var inp = $('input-producto'), lista = $('combo-productos-lista');
+    inp.addEventListener('focus', function () { abrirCombo(filtroComboActual()); });
+    inp.addEventListener('input', function () { abrirCombo(inp.value); refrescarBotonLimpiarCombo(); });
+    inp.addEventListener('blur', comboRestaurar);
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault(); if (!comboAbierto()) abrirCombo(filtroComboActual());
+        resaltarCombo(comboActivo + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault(); if (!comboAbierto()) abrirCombo(filtroComboActual());
+        resaltarCombo(comboActivo < 0 ? -1 : comboActivo - 1);
+      } else if (e.key === 'Enter') {
+        if (!comboAbierto()) return;
+        e.preventDefault();
+        var elegido = comboActivo >= 0 ? comboResultados[comboActivo] : (comboResultados.length === 1 ? comboResultados[0] : null);
+        if (elegido) comboSeleccionar(elegido);
+      } else if (e.key === 'Escape') { cerrarCombo(); }
+    });
+    // mousedown + preventDefault: el campo no pierde el foco antes de registrar la elección
+    lista.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      var item = e.target.closest ? e.target.closest('.combo-item') : null;
+      if (item) comboSeleccionar(comboResultados[Number(item.getAttribute('data-i'))]);
+    });
+    $('combo-productos-toggle').addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      if (comboAbierto()) cerrarCombo(); else { inp.focus(); abrirCombo(''); }
+    });
+    $('combo-productos-limpiar').addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      state.productoActivoManager = null; inp.value = '';
+      refrescarBotonLimpiarCombo(); renderizarBibliotecaManager();
+      inp.focus(); abrirCombo('');
+    });
+    refrescarBotonLimpiarCombo();
+  }
+
+  function renderizarTabsManager() {
+    var cont = $('tabs-container'); vaciar(cont);
+    state.categorias.forEach(function (cat) {
+      var activo = cat.id === state.categoriaActivaManager;
+      var btn = el('button', { type: 'button', text: cat.nombre, cls: activo ? 'pb-3 px-2 text-sm tab-active' : 'pb-3 px-2 text-sm tab-inactive hover:text-gray-900' });
+      btn.addEventListener('click', function () { state.categoriaActivaManager = cat.id; renderizarTabsManager(); renderizarBibliotecaManager(); });
+      cont.appendChild(btn);
+    });
+  }
+
+  function tarjetaMedio(url) {
+    var hijos = [el('img', { src: obtenerThumbnail(url), cls: 'max-w-full max-h-full object-cover pointer-events-none rounded' })];
+    if (esVideo(url)) hijos.push(botonPlay(url, 'text-2xl'));
+    return el('div', { cls: 'img-card drag-card bg-white rounded-lg border border-gray-200 p-1 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 flex items-center justify-center relative shadow-sm hover:shadow-md overflow-hidden', 'data-url': url }, hijos);
+  }
+
+  function renderizarBibliotecaManager() {
+    var grid = $('library-grid'); vaciar(grid);
+    if (!state.productoActivoManager) return mensajeVacio(grid, 'Seleccioná o buscá un producto arriba.');
+    var fotos = state.medios.filter(function (m) { return m.sku === state.productoActivoManager && m.categoria === state.categoriaActivaManager; });
+    if (fotos.length === 0) return mensajeVacio(grid, 'No hay archivos en esta pestaña.');
+    fotos.forEach(function (foto) { grid.appendChild(tarjetaMedio(foto.url)); });
+  }
+
+  function initSortable() {
+    if (typeof Sortable === 'undefined' || sortableLibrary) return;
+    sortableLibrary = new Sortable($('library-grid'), {
+      group: { name: 'shared', pull: 'clone', put: false }, animation: 150, sort: false,
+      filter: '[data-play]', preventOnFilter: false
+    });
+    sortableCarousel = new Sortable($('carousel-zone'), {
+      group: { name: 'shared', pull: false, put: true }, animation: 150, draggable: '.img-card',
+      onAdd: actualizarContador, onUpdate: actualizarContador
+    });
+  }
+
+  function actualizarContador() {
+    var n = $('carousel-zone').querySelectorAll('.img-card').length;
+    $('counter').textContent = n + ' items';
+    $('empty-carousel-msg').style.display = n > 0 ? 'none' : 'block';
+    if (n === 0) { var res = $('magia-resultado'); if (res) res.classList.add('hidden'); }
+  }
+
+  function limpiarCarrusel() {
+    var items = $('carousel-zone').querySelectorAll('.img-card');
+    for (var i = 0; i < items.length; i++) items[i].parentNode.removeChild(items[i]);
+    actualizarContador(); $('inp-pie-foto').value = '';
+  }
+
+  // --- Automatizar con IA: 12 estructuras de carrusel ---
+  // req = tipos de foto que el patrón necesita sí o sí; el resto se completa con lo que haya.
+  var PATRONES_MAGIA = [
+    { nombre: 'Lookbook', desc: 'modelo, dos fotos de producto y cierre de marca',
+      armar: function (t) { return [].concat(t.mod(1), t.prod(2), t.marca(1)); } },
+    { nombre: 'Catálogo comercial', desc: 'tres fotos de producto y una con modelo',
+      armar: function (t) { return [].concat(t.prod(3), t.mod(1)); } },
+    { nombre: 'Impacto simple', desc: 'una sola foto protagonista',
+      armar: function (t) { return [].concat(t.mod(1)); } },
+    { nombre: 'Portada y detalles', desc: 'modelo de portada y tres detalles del producto',
+      armar: function (t) { return [].concat(t.mod(1), t.prod(3)); } },
+    { nombre: 'Historia de marca', desc: 'marca, modelo, producto y cierre de marca', req: ['marca'],
+      armar: function (t) { return [].concat(t.marca(1), t.mod(1), t.prod(2), t.marca(1)); } },
+    { nombre: 'Detalle total', desc: 'hasta cinco fotos del producto desde distintos ángulos', req: ['prod'],
+      armar: function (t) { return [].concat(t.prod(5)); } },
+    { nombre: 'Editorial', desc: 'dos fotos de modelo, una de producto y una de marca',
+      armar: function (t) { return [].concat(t.mod(2), t.prod(1), t.marca(1)); } },
+    { nombre: 'Dúo', desc: 'una foto de modelo y una de producto',
+      armar: function (t) { return [].concat(t.mod(1), t.prod(1)); } },
+    { nombre: 'Galería mixta', desc: 'mezcla variada de hasta ocho archivos del artículo',
+      armar: function (t) { return [].concat(t.cualquiera(8)); } },
+    { nombre: 'Antes de comprar', desc: 'dos fotos de producto y una con modelo para decidir',
+      armar: function (t) { return [].concat(t.prod(2), t.mod(1)); } },
+    { nombre: 'Identidad de marca', desc: 'dos fotos de marca y una de producto', req: ['marca'],
+      armar: function (t) { return [].concat(t.marca(2), t.prod(1)); } },
+    { nombre: 'Desfile', desc: 'hasta cuatro fotos de modelo', req: ['mod'],
+      armar: function (t) { return [].concat(t.mod(4)); } }
+  ];
+  var ultimoPatronMagia = -1, magiaEnCurso = false;
+
+  // Reparte los medios del artículo por tipo y evita repetir una foto dentro del mismo carrusel.
+  function crearAyudanteMagia(medios) {
+    function tipo(t) { return medios.filter(function (m) { return m.categoria.toUpperCase().indexOf(t) !== -1; }); }
+    var pools = { mod: tipo('MOD'), prod: tipo('PROD'), marca: tipo('BRAND') };
+    var usados = {};
+    function tomar(pool, n) {
+      // Si no hay fotos de ese tipo se completa con cualquier otra; si hay pocas, se usan las que haya.
+      var res = mezclar(pool.length ? pool : medios).filter(function (m) { return !usados[m.url]; }).slice(0, n);
+      res.forEach(function (m) { usados[m.url] = true; });
+      return res;
+    }
+    return {
+      tiene: { mod: pools.mod.length > 0, prod: pools.prod.length > 0, marca: pools.marca.length > 0 },
+      mod: function (n) { return tomar(pools.mod, n); },
+      prod: function (n) { return tomar(pools.prod, n); },
+      marca: function (n) { return tomar(pools.marca, n); },
+      cualquiera: function (n) { return tomar(medios, n); }
+    };
+  }
+
+  function mostrarResultadoMagia(patron, n) {
+    var caja = $('magia-resultado'); vaciar(caja);
+    caja.appendChild(icono('fa-solid fa-wand-magic-sparkles text-fuchsia-500'));
+    caja.appendChild(el('span', { cls: 'font-semibold text-gray-800', text: patron.nombre + ':' }));
+    caja.appendChild(el('span', { cls: 'text-gray-600', text: patron.desc + ' (' + n + (n === 1 ? ' archivo' : ' archivos') + ')' }));
+    caja.classList.remove('hidden');
+  }
+
+  function aplicarPatronMagia(medios) {
+    var t = crearAyudanteMagia(medios);
+    var validos = [];
+    PATRONES_MAGIA.forEach(function (p, i) {
+      if ((p.req || []).every(function (r) { return t.tiene[r]; })) validos.push(i);
+    });
+    if (validos.length === 0) validos = [2];
+    var candidatos = validos.length > 1 ? validos.filter(function (i) { return i !== ultimoPatronMagia; }) : validos;   // no repite el patrón anterior
+    var idx = candidatos[Math.floor(Math.random() * candidatos.length)];
+    ultimoPatronMagia = idx;
+
+    var patron = PATRONES_MAGIA[idx];
+    var sel = patron.armar(t).slice(0, 10);
+    if (sel.length === 0) return toast('No se pudo armar el carrusel con los archivos disponibles.', 'error');
+
+    limpiarCarrusel();
+    var zona = $('carousel-zone');
+    sel.forEach(function (foto, i) {
+      var tarjeta = tarjetaMedio(foto.url);
+      tarjeta.classList.add('item-magia'); tarjeta.style.animationDelay = (i * 90) + 'ms';
+      zona.appendChild(tarjeta);
+    });
+    actualizarContador();
+    mostrarResultadoMagia(patron, sel.length);
+    toast('Listo: ' + patron.nombre + ' (' + sel.length + (sel.length === 1 ? ' archivo' : ' archivos') + ')');
+  }
+
+  function generarAutomatizacion() {
+    if (magiaEnCurso) return;
+    if (!state.productoActivoManager) return toast('Seleccioná un producto primero', 'error');
+    var sku = state.productoActivoManager;
+    var medios = state.medios.filter(function (m) { return m.sku === sku; });
+    if (medios.length === 0) return toast('El producto seleccionado no tiene archivos.', 'error');
+
+    magiaEnCurso = true;
+    var btn = $('btn-automatizar'), txt = $('btn-automatizar-txt');
+    var mensajes = ['Revisando tu galería...', 'Eligiendo una estructura...', 'Armando el carrusel...'], paso = 0;
+    btn.disabled = true; txt.textContent = mensajes[0];
+    var timer = setInterval(function () { paso++; if (paso < mensajes.length) txt.textContent = mensajes[paso]; }, 450);
+    setTimeout(function () {
+      clearInterval(timer);
+      try { if (state.productoActivoManager === sku) aplicarPatronMagia(medios); }
+      finally { magiaEnCurso = false; btn.disabled = false; txt.textContent = 'Automatizar con IA'; }
+    }, 1350);
+  }
+
+  function guardarPost() {
+    var items = $('carousel-zone').querySelectorAll('.img-card');
+    if (!state.productoActivoManager) return toast('Seleccioná un producto primero.', 'error');
+    if (items.length === 0) return toast('Agregá contenido a la zona de edición.', 'error');
+    if (items.length > 10) return toast('Instagram permite máximo 10 archivos por carrusel.', 'error');
+
+    var btn = $('btn-guardar'); btn.disabled = true;
+    vaciar(btn); btn.appendChild(icono('fa-solid fa-spinner fa-spin')); btn.appendChild(document.createTextNode(' Enviando...'));
+    function reset() { btn.disabled = false; vaciar(btn); btn.appendChild(icono('fa-solid fa-paper-plane')); btn.appendChild(document.createTextNode(' Enviar a la cola')); }
+
+    var payload = {
+      sku: state.productoActivoManager,
+      urls: Array.prototype.map.call(items, function (i) { return i.getAttribute('data-url'); }),
+      pieFoto: $('inp-pie-foto').value.trim()
+    };
+    rpc('enviarAColaPublicacion', [payload], function (nuevaCola) {
+      state.cola = nuevaCola; renderTablaCola(); toast('Publicación encolada correctamente'); limpiarCarrusel(); reset();
+    }, function (err) { reset(); manejarError(err, 'Error al enviar la publicación'); });
+  }
+
+  // ------------------------------------------------------------------
+  // Cola
+  // ------------------------------------------------------------------
+  function renderTablaCola() {
+    var tbody = $('tabla-cola'); vaciar(tbody);
+    if (state.cola.length === 0) {
+      tbody.appendChild(el('tr', null, [el('td', { colspan: '7', cls: 'px-6 py-8 text-center text-sm text-gray-400', text: 'No hay publicaciones en la cola.' })]));
+      return;
+    }
+    state.cola.forEach(function (c) {
+      var prod = state.productos.filter(function (p) { return p.sku === c.sku; })[0];
+
+      var thumbs = el('div', { cls: 'flex flex-wrap items-center gap-2' });
+      (c.urls ? c.urls.split(' * ') : []).forEach(function (url) {
+        if (!url) return;
+        var hijos = [el('img', { src: obtenerThumbnail(url), cls: 'w-full h-full object-cover rounded-md pointer-events-none' })];
+        if (esVideo(url)) hijos.push(botonPlay(url, 'text-xl'));
+        thumbs.appendChild(el('div', { cls: 'w-14 h-14 bg-blue-50/30 border border-blue-200 rounded-lg p-0.5 flex items-center justify-center relative overflow-hidden shrink-0' }, hijos));
+      });
+
+      var pie = c.pieFoto
+        ? el('span', { title: c.pieFoto, text: c.pieFoto.length > 30 ? c.pieFoto.substring(0, 30) + '...' : c.pieFoto })
+        : el('i', { cls: 'text-gray-400 text-xs', text: 'Generado por IA' });
+
+      var estadoCls = c.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700' : (c.estado === 'Enviado' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700');
+      var fecha = c.fechaPublicacion ? el('span', { text: c.fechaPublicacion }) : el('span', { cls: 'text-gray-300', text: '—' });
+
+      tbody.appendChild(el('tr', null, [
+        celda('text-sm font-medium text-gray-700', [c.sku]),
+        celda('text-sm text-gray-600 font-medium', [prod ? prod.nombre : '-']),
+        el('td', { cls: 'px-6 py-4 text-sm' }, [thumbs]),
+        el('td', { cls: 'px-6 py-4 text-sm text-gray-600' }, [pie]),
+        celda('text-sm', [el('span', { cls: 'px-2.5 py-1 rounded-md text-xs font-semibold ' + estadoCls, text: c.estado || '-' })]),
+        celda('text-sm text-gray-600', [fecha]),
+        celda('text-right text-sm', [
+          botonAccion('bg-orange-50 text-orange-500 p-2 rounded-md hover:bg-orange-100 mr-2 transition-colors', 'Editar publicación', 'fa-solid fa-pen', 'editar-post', c.id),
+          botonAccion('bg-red-50 text-red-500 p-2 rounded-md hover:bg-red-100 transition-colors opacity-80 hover:opacity-100', 'Eliminar publicación', 'fa-solid fa-trash', 'del-post', c.id)
+        ])
+      ]));
+    });
+  }
+
+  // --- Editar una publicación de la cola (medios, orden, pie de foto y estado) ---
+  var postEditandoId = null, sortableEditarPost = null;
+
+  function tarjetaEditarPost(url) {
+    var hijos = [el('img', { src: obtenerThumbnail(url), cls: 'w-full h-full object-cover rounded pointer-events-none' })];
+    if (esVideo(url)) hijos.push(botonPlay(url, 'text-2xl'));
+    var quitar = el('button', { type: 'button', title: 'Quitar de la publicación', 'aria-label': 'Quitar archivo',
+      cls: 'ep-quitar absolute top-1 right-1 z-20 bg-red-600/90 hover:bg-red-700 text-white rounded w-6 h-6 flex items-center justify-center text-xs shadow' }, [icono('fa-solid fa-xmark')]);
+    var tarjeta = el('div', { cls: 'ep-card drag-card bg-white rounded-lg border border-gray-200 p-1 w-24 h-24 relative shadow-sm overflow-hidden shrink-0', 'data-url': url }, hijos);
+    tarjeta.appendChild(quitar);
+    quitar.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (tarjeta.parentNode) tarjeta.parentNode.removeChild(tarjeta);
+      actualizarContadorEditarPost();
+    });
+    return tarjeta;
+  }
+
+  function actualizarContadorEditarPost() {
+    var n = $('ep-medios').querySelectorAll('.ep-card').length;
+    $('ep-contador').textContent = n + (n === 1 ? ' archivo' : ' archivos');
+    $('ep-vacio').classList.toggle('hidden', n > 0);
+  }
+
+  function abrirModalEditarPost(id) {
+    var post = state.cola.filter(function (c) { return c.id === id; })[0];
+    if (!post) return;
+    postEditandoId = post.id;
+    var prod = state.productos.filter(function (p) { return p.sku === post.sku; })[0];
+    $('ep-sub').textContent = post.sku + (prod ? ' - ' + prod.nombre : '') + '  (' + post.id + ')';
+
+    var cont = $('ep-medios'); vaciar(cont);
+    (post.urls ? post.urls.split(' * ') : []).forEach(function (u) { if (u) cont.appendChild(tarjetaEditarPost(u)); });
+
+    var sel = $('ep-estado'); vaciar(sel);
+    ['Pendiente', 'Enviado'].forEach(function (e) { sel.add(new Option(e, e)); });
+    if (post.estado && ['Pendiente', 'Enviado'].indexOf(post.estado) === -1) sel.add(new Option(post.estado + ' (actual)', post.estado));
+    sel.value = post.estado || 'Pendiente';
+
+    $('ep-pie').value = post.pieFoto || '';
+    $('ep-fecha').textContent = post.fechaPublicacion || 'Todavía no se publicó';
+    $('ep-aviso-enviado').classList.toggle('hidden', post.estado !== 'Enviado');
+    actualizarContadorEditarPost();
+
+    if (!sortableEditarPost && typeof Sortable !== 'undefined') {
+      sortableEditarPost = new Sortable(cont, { animation: 150, draggable: '.ep-card', filter: '.ep-quitar', preventOnFilter: false });
+    }
+    $('modal-editar-post').classList.remove('hidden');
+  }
+
+  function cerrarModalEditarPost() { $('modal-editar-post').classList.add('hidden'); postEditandoId = null; }
+
+  function guardarEdicionPost() {
+    var tarjetas = $('ep-medios').querySelectorAll('.ep-card');
+    if (tarjetas.length === 0) return toast('La publicación necesita al menos un archivo. Si querés descartarla, eliminala desde la cola.', 'error');
+    var btn = $('btn-guardar-edicion-post'); btn.disabled = true; btn.textContent = 'Guardando...';
+    function reset() { btn.disabled = false; btn.textContent = 'Guardar cambios'; }
+    var payload = {
+      id: postEditandoId,
+      urls: Array.prototype.map.call(tarjetas, function (t) { return t.getAttribute('data-url'); }),
+      pieFoto: $('ep-pie').value.trim(),
+      estado: $('ep-estado').value
+    };
+    rpc('actualizarPostCola', [payload], function (nuevaCola) {
+      state.cola = nuevaCola; renderTablaCola(); cerrarModalEditarPost(); reset(); toast('Publicación actualizada');
+    }, function (err) { reset(); manejarError(err, 'Error al actualizar la publicación'); });
+  }
+
+  // --- Modo iterativo (se guarda al tildar) ---
+  function guardarIterativo(activo) {
+    var chk = $('chk-iterativo'); chk.disabled = true;
+    rpc('guardarModoIterativo', [activo], function (val) {
+      chk.disabled = false; state.config.RecicladoAutomatico = val;
+      toast(val === '1' ? 'Modo iterativo activado: la cola vuelve a empezar sola al terminar.' : 'Modo iterativo desactivado: cada publicación saldrá una sola vez.');
+    }, function (err) { chk.disabled = false; chk.checked = !activo; manejarError(err, 'No se pudo guardar el modo iterativo'); });
+  }
+
+  function eliminarPostFront(idPost) {
+    if (!confirm('¿Estás seguro de eliminar esta publicación? No se enviará a Instagram.')) return;
+    loader(true);
+    rpc('eliminarPostCola', [idPost], function (nuevaCola) {
+      state.cola = nuevaCola; renderTablaCola(); loader(false); toast('Publicación eliminada de la cola');
+    }, function (err) { loader(false); manejarError(err, 'Error al eliminar'); });
+  }
+
+  function aplicarOrdenCola() {
+    var modo = $('sel-orden-cola').value;
+    loader(true);
+    rpc('guardarModoDistribucion', [modo], function (nuevaCola) {
+      state.config.CiclicoOK = modo === 'aleatorio' ? '0' : '1';
+      state.cola = nuevaCola; renderTablaCola(); loader(false);
+      toast('Distribución actualizada: ' + (modo === 'aleatorio' ? 'aleatoria' : 'cíclica') + '.');
+    }, function (err) { loader(false); manejarError(err, 'Error al aplicar el orden.'); });
+  }
+
+  // ------------------------------------------------------------------
+  // Configuración
+  // ------------------------------------------------------------------
+  function guardarConfig() {
+    loader(true);
+    rpc('guardarConfiguracion', [$('inp-cloud-name').value.trim(), $('inp-upload-preset').value.trim()], function (res) {
+      state.config = Object.assign({}, state.config, res); initCloudinary(); loader(false); toast('Configuración actualizada');
+    }, function (err) { loader(false); manejarError(err, 'Error al guardar la configuración'); });
+  }
+
+  // ------------------------------------------------------------------
+  // Configuración: pestañas, perfil, contacto y tutoriales
+  // ------------------------------------------------------------------
+  var tabConfigActual = 'personal', perfilCache = null;
+
+  function cambiarTabConfig(tab) {
+    var tabs = ['personal', 'contacto', 'cloudinary', 'tutoriales'];
+    if (tabs.indexOf(tab) === -1) tab = 'personal';
+    tabConfigActual = tab;
+    tabs.forEach(function (t) {
+      var activo = t === tab;
+      $('cfg-panel-' + t).classList.toggle('hidden', !activo);
+      var b = $('cfg-tab-' + t);
+      b.classList.toggle('activo', activo); b.setAttribute('aria-selected', activo ? 'true' : 'false');
+    });
+    if (tab === 'personal') cargarPerfil();
+    if (tab === 'contacto') actualizarContacto();
+  }
+
+  function pintarPerfil(p) {
+    $('pf-email').textContent = p.email || '—';
+    $('pf-plan').textContent = p.plan || 'Sin asignar';
+    $('pf-registro').textContent = p.fechaRegistro || '—';
+    var est = $('pf-estado'); est.textContent = p.estado || '—';
+    est.className = 'px-2.5 py-1 rounded-md text-xs font-semibold ' + (p.estado === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700');
+    $('pf-nombre').value = p.nombreNegocio || '';
+    $('pf-telefono').value = p.telefono || '';
+  }
+
+  function cargarPerfil() {
+    if (perfilCache) return pintarPerfil(perfilCache);
+    rpc('obtenerPerfil', [], function (p) { perfilCache = p; pintarPerfil(p); },
+      function (err) { manejarError(err, 'No se pudieron cargar tus datos'); });
+  }
+
+  function guardarPerfil() {
+    var nombre = $('pf-nombre').value.trim(), tel = $('pf-telefono').value.trim();
+    if (!nombre || !tel) return toast('Completá el nombre del negocio y el teléfono.', 'error');
+    loader(true);
+    rpc('guardarPerfil', [nombre, tel], function (res) {
+      if (perfilCache) { perfilCache.nombreNegocio = res.nombreNegocio; perfilCache.telefono = res.telefono; }
+      state.nombreNegocio = res.nombreNegocio; $('sidebar-negocio').textContent = res.nombreNegocio;
+      loader(false); toast('Datos actualizados');
+    }, function (err) { loader(false); manejarError(err, 'No se pudieron guardar los datos'); });
+  }
+
+  // El botón de WhatsApp se completa solo (atributo data-whatsapp, lo maneja el script de login).
+  function actualizarContacto() {
+    var cfg = (window.Auth && window.Auth.getConfigGlobal && window.Auth.getConfigGlobal()) || {};
+    var mail = cfg.EMAIL_CONTACTO || '';
+    $('ct-email').setAttribute('href', mail ? 'mailto:' + mail : '#');
+    $('ct-email-txt').textContent = mail || 'Email no disponible';
+  }
+
+  // --- Contenido de los tutoriales ---
+  var TUTORIAL_SECCIONES = [
+    { vista: 'productos', icono: 'fa-solid fa-box-open', color: 'text-blue-600 bg-blue-50', titulo: 'Inventario', resumen: 'Tu catálogo de artículos y sus archivos.',
+      pasos: [
+        'Tocá "Nuevo Producto" y completá SKU, nombre, estado y stock. El stock influye en el tipo de pie de foto que redacta la IA.',
+        'Elegí el tipo de medio (por ejemplo Producto, Modelo o Branded) y subí fotos o videos: quedan guardados en tu cuenta de Cloudinary.',
+        'Con el botón de galería de cada fila sumás o borrás archivos más adelante; con el lápiz cambiás nombre, estado o stock.'
+      ] },
+    { vista: 'manager', icono: 'fa-solid fa-wand-magic-sparkles', color: 'text-fuchsia-600 bg-fuchsia-50', titulo: 'Diseñador de posts', resumen: 'Armá el carrusel y el texto de cada publicación.',
+      pasos: [
+        'Elegí un artículo en el desplegable: escribí parte del SKU o del nombre y la lista se filtra sola.',
+        'Recorré las pestañas de tu galería (una por tipo de medio) y arrastrá fotos o videos a la zona de edición. Se numeran en el orden en que se publicarán: arrastralos para reordenar o hacé doble clic para quitarlos.',
+        '¿Poco tiempo? "Automatizar con IA" arma un carrusel con una estructura elegida entre 12 patrones. Podés repetirlo hasta que te guste y ajustarlo a mano.',
+        'Escribí el pie de foto o dejalo vacío: la IA lo redacta según el producto y el stock. Podés sumar emojis.',
+        'Tocá "Enviar a la cola" para dejar la publicación lista.'
+      ] },
+    { vista: 'cola', icono: 'fa-regular fa-paper-plane', color: 'text-emerald-600 bg-emerald-50', titulo: 'Cola de envíos', resumen: 'Lo que espera para publicarse y lo que ya salió.',
+      pasos: [
+        'Cada fila es una publicación. "Pendiente" espera su turno; "Enviado" ya se publicó y muestra su fecha de publicación.',
+        'Distribución define el orden: Cíclico sigue el orden de creación y Aleatorio los mezcla. Tocá "Aplicar" para guardarlo.',
+        'Iterativo: cuando se publican todas, la cola vuelve a empezar sola. En cada vuelta se vacían los pies de foto para que la IA escriba textos nuevos.',
+        'Con el lápiz de cada fila editás la publicación: quitás o reordenás archivos y cambiás el pie de foto o el estado.'
+      ] },
+    { vista: 'config', icono: 'fa-solid fa-gear', color: 'text-gray-600 bg-gray-100', titulo: 'Configuración', resumen: 'Tu cuenta, cómo contactarnos y tus credenciales.',
+      pasos: [
+        'Información personal: el nombre de tu negocio y tu teléfono.',
+        'Contacto: WhatsApp y email para consultas o soporte.',
+        'Credenciales de Cloudinary: el Cloud Name y el Upload Preset que permiten subir tus archivos.',
+        'Tutoriales: esta guía.'
+      ] }
+  ];
+
+  var TUTORIAL_CLOUDINARY = [
+    'Creá una cuenta gratuita en cloudinary.com e ingresá a tu panel (Dashboard).',
+    'Copiá el "Cloud Name" que aparece en la parte superior del Dashboard.',
+    'Andá a Settings > Upload > Upload presets y tocá "Add upload preset".',
+    'En "Signing mode" elegí Unsigned, ponele un nombre fácil de recordar y guardalo. (Los nombres del menú pueden variar levemente.)',
+    'Volvé a Auto Manager, pegá el Cloud Name y el nombre del preset en "Credenciales de Cloudinary" y tocá "Guardar Configuración".'
+  ];
+
+  var TUTORIAL_VINCULOS = [
+    { icono: 'fa-solid fa-key', color: 'text-violet-600 bg-violet-50', nombre: 'Tu sesión en Auto Manager',
+      hace: 'Te mantiene identificado mientras usás la app.',
+      comparte: 'Si tildás "Mantener la sesión", se guarda en este navegador un código de sesión temporal. Si tildás "Recordar usuario", se guarda solo tu email.',
+      noComparte: 'Tu contraseña no se guarda en el navegador y en nuestros registros se almacena cifrada (hash con sal), nunca en texto plano.',
+      revocar: 'Al tocar "Cerrar sesión" el código se invalida en el servidor y se borran los datos de la pantalla.' },
+    { icono: 'fa-solid fa-table-cells', color: 'text-emerald-600 bg-emerald-50', nombre: 'Planilla de Google (tus datos)',
+      hace: 'Guarda tus artículos, la lista de archivos, la cola de publicaciones y tu configuración en una planilla exclusiva de tu negocio.',
+      comparte: 'Solo lo que cargás en Auto Manager. Los datos de otros clientes viven en planillas separadas.',
+      noComparte: 'Ninguna otra información de tu cuenta de Google.',
+      nota: 'El administrador del servicio tiene acceso a tu planilla para poder darte soporte.',
+      revocar: 'Podés pedirnos la baja de tu cuenta en cualquier momento por WhatsApp o email.' },
+    { icono: 'fa-solid fa-cloud-arrow-up', color: 'text-orange-600 bg-orange-50', nombre: 'Cloudinary (fotos y videos)',
+      hace: 'Aloja tus fotos y videos y genera las miniaturas.',
+      comparte: 'Solo el Cloud Name y el nombre del Upload Preset. Un preset Unsigned únicamente permite subir archivos: no permite ver, listar ni borrar el resto de tu biblioteca.',
+      noComparte: 'Nunca te pedimos tu API Secret ni la contraseña de tu cuenta de Cloudinary.',
+      revocar: 'Desde tu panel de Cloudinary podés borrar el preset o pasarlo a Signed: la app deja de poder subir archivos al instante.' },
+    { icono: 'fa-solid fa-robot', color: 'text-blue-600 bg-blue-50', nombre: 'Make (el proceso automático)',
+      hace: 'Toma las publicaciones pendientes de tu cola, las publica y marca su estado y su fecha.',
+      comparte: 'Lee tu planilla para saber qué publicar y actualiza el estado a "Enviado".',
+      noComparte: 'No usa tu contraseña de Instagram: la conexión con Instagram se hace con el login oficial de Meta.',
+      revocar: 'Si querés pausar las publicaciones, pedinos que detengamos el proceso.' },
+    { icono: 'fa-brands fa-instagram', color: 'text-pink-600 bg-pink-50', nombre: 'Instagram (Meta)',
+      hace: 'Es el lugar donde se publican tus posts.',
+      comparte: 'Le das permiso para publicar en tu cuenta mediante el inicio de sesión oficial de Meta.',
+      noComparte: 'Nunca vemos ni guardamos tu contraseña de Instagram.',
+      revocar: 'Podés quitar el permiso cuando quieras desde la configuración de tu cuenta de Instagram o Facebook, en "Apps y sitios web".' },
+    { icono: 'fa-solid fa-wand-magic-sparkles', color: 'text-fuchsia-600 bg-fuchsia-50', nombre: 'Gemini (inteligencia artificial)',
+      hace: 'Redacta el pie de foto cuando lo dejás vacío.',
+      comparte: 'Datos del artículo, como su nombre y su stock, para escribir un texto acorde.',
+      noComparte: 'No recibe contraseñas ni datos de acceso de ningún tipo.',
+      revocar: 'Si preferís no usar IA, escribí siempre el pie de foto a mano.' },
+    { icono: 'fa-brands fa-whatsapp', color: 'text-green-600 bg-green-50', nombre: 'WhatsApp (contacto)',
+      hace: 'El botón de contacto abre una conversación con nosotros y un saludo ya escrito.',
+      comparte: 'Nada de forma automática: tu número se comparte solo cuando vos enviás el mensaje.',
+      noComparte: 'No enviamos mensajes en tu nombre.',
+      revocar: 'Podés silenciar o bloquear la conversación cuando quieras.' }
+  ];
+
+  function detalle(cabecera, cuerpo) {
+    var det = el('details', { cls: 'tut-item bg-white border border-gray-200 rounded-lg' });
+    det.appendChild(el('summary', { cls: 'flex items-center gap-3 px-4 py-3 cursor-pointer select-none' }, cabecera.concat([icono('fa-solid fa-chevron-down text-xs text-gray-400 tut-flecha')])));
+    det.appendChild(el('div', { cls: 'px-4 pb-4 pt-1 space-y-3' }, cuerpo));
+    return det;
+  }
+  function chapa(iconoCls, color) { return el('span', { cls: 'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ' + color }, [icono(iconoCls)]); }
+  function linea(titulo, texto) {
+    return el('p', { cls: 'text-sm text-gray-600' }, [el('b', { cls: 'text-gray-800', text: titulo + ': ' }), texto]);
+  }
+
+  function renderTutoriales() {
+    var sec = $('tut-secciones'); vaciar(sec);
+    TUTORIAL_SECCIONES.forEach(function (s) {
+      var cab = [chapa(s.icono, s.color), el('span', { cls: 'flex-1' }, [
+        el('span', { cls: 'block text-sm font-semibold text-gray-800', text: s.titulo }),
+        el('span', { cls: 'block text-xs text-gray-500', text: s.resumen })
+      ])];
+      var lista = el('ol', { cls: 'list-decimal pl-5 space-y-1.5 text-sm text-gray-600' }, s.pasos.map(function (p) { return el('li', { text: p }); }));
+      var ver = el('button', { type: 'button', 'data-action': 'tour-seccion', 'data-arg': s.vista,
+        cls: 'inline-flex items-center gap-2 text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-3 py-1.5 rounded-full transition-colors' },
+        [icono('fa-solid fa-play text-[10px]'), ' Mostrámelo en pantalla']);
+      sec.appendChild(detalle(cab, [lista, ver]));
     });
 
-    window.onload = () => { google.script.run.withSuccessHandler(initApp).withFailureHandler(e => showToast(e, 'error')).getInitialData(); };
+    var cl = $('tut-cloudinary'); vaciar(cl);
+    TUTORIAL_CLOUDINARY.forEach(function (p) { cl.appendChild(el('li', { text: p })); });
 
-    function initApp(data) {
-      state = {...state, ...data};
-      if (state.categorias.length > 0) state.categoriaActivaManager = state.categorias[0].id;
-      
-      // SETEAR EL SELECTOR DE DISTRIBUCIÓN AL CARGAR
-      document.getElementById('sel-orden-cola').value = (state.config.CiclicoOK === '0') ? 'aleatorio' : 'ciclico';
-      
-      renderTablaProductos(); renderTablaCola(); actualizarDatalistManager(); renderizarTabsManager(); poblarSelectCategoriasModales(); initSortable();
-      document.getElementById('inp-cloud-name').value = state.config.CLOUDINARY_CLOUD_NAME || '';
-      document.getElementById('inp-upload-preset').value = state.config.CLOUDINARY_UPLOAD_PRESET || '';
-      initCloudinary();
-      document.getElementById('loader').classList.add('hidden');
+    var vin = $('tut-vinculos'); vaciar(vin);
+    TUTORIAL_VINCULOS.forEach(function (v) {
+      var cuerpo = [linea('Qué hace', v.hace), linea('Qué información comparte', v.comparte), linea('Qué no comparte', v.noComparte)];
+      if (v.nota) cuerpo.push(el('p', { cls: 'text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-md px-3 py-2', text: v.nota }));
+      cuerpo.push(linea('Cómo cortar el acceso', v.revocar));
+      vin.appendChild(detalle([chapa(v.icono, v.color), el('span', { cls: 'flex-1 text-sm font-semibold text-gray-800', text: v.nombre })], cuerpo));
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // Guía interactiva (recorrido con foco sobre cada elemento)
+  // ------------------------------------------------------------------
+  var PASOS_TOUR = [
+    { vista: 'productos', sel: '#nav-productos', titulo: 'Inventario', texto: 'Tu catálogo: cada artículo con su SKU, estado y stock.' },
+    { vista: 'productos', sel: '[data-action="nuevo-producto"]', titulo: 'Nuevo producto', texto: 'Creá un artículo y subí sus fotos y videos en un solo paso.' },
+    { vista: 'productos', sel: '#vista-productos table', titulo: 'Tus artículos', texto: 'En cada fila tenés la galería de archivos, la edición y el borrado.' },
+    { vista: 'manager', sel: '#nav-manager', titulo: 'Diseñador de posts', texto: 'Acá armás cada publicación.' },
+    { vista: 'manager', sel: '#combo-productos', titulo: 'Elegí un artículo', texto: 'Escribí parte del SKU o del nombre y la lista se filtra. También podés abrirla con la flecha.' },
+    { vista: 'manager', sel: '#tabs-container', titulo: 'Tu galería', texto: 'Una pestaña por tipo de medio. Arrastrá lo que quieras a la zona de edición.' },
+    { vista: 'manager', sel: '#btn-automatizar', titulo: 'Automatizar con IA', texto: 'Arma un carrusel por vos con una estructura elegida entre 12 patrones. Probalo las veces que quieras.' },
+    { vista: 'manager', sel: '#carousel-zone', titulo: 'Zona de edición', texto: 'Los medios se numeran en el orden de publicación. Arrastralos para reordenar; doble clic para quitar.' },
+    { vista: 'manager', sel: '#inp-pie-foto', titulo: 'Pie de foto', texto: 'Escribilo vos o dejalo vacío para que la IA lo redacte.' },
+    { vista: 'manager', sel: '#btn-guardar', titulo: 'Enviar a la cola', texto: 'Deja la publicación lista para salir.' },
+    { vista: 'cola', sel: '#nav-cola', titulo: 'Cola de envíos', texto: 'Todo lo pendiente y lo que ya se envió.' },
+    { vista: 'cola', sel: '#sel-orden-cola', titulo: 'Distribución', texto: 'Cíclico respeta el orden de creación; Aleatorio los mezcla. Tocá "Aplicar" para guardarlo.' },
+    { vista: 'cola', sel: '#caja-iterativo', titulo: 'Iterativo', texto: 'Si lo activás, cuando se publican todas las publicaciones la cola vuelve a empezar sola.' },
+    { vista: 'cola', sel: '#vista-cola table', titulo: 'Editar o eliminar', texto: 'El lápiz de cada fila abre la edición: medios, orden, pie de foto y estado. La última columna muestra cuándo se publicó.' },
+    { vista: 'config', sel: '#nav-config', titulo: 'Configuración', texto: 'Tu cuenta y tus conexiones.' },
+    { vista: 'config', tab: 'personal', sel: '#cfg-tabs', titulo: 'Cuatro secciones', texto: 'Información personal, contacto, credenciales de Cloudinary y tutoriales.' },
+    { vista: 'config', tab: 'cloudinary', sel: '#cfg-panel-cloudinary', titulo: 'Cloudinary', texto: 'Acá pegás tu Cloud Name y tu Upload Preset para poder subir archivos.' },
+    { vista: 'config', tab: 'tutoriales', sel: '#cfg-panel-tutoriales', titulo: 'Siempre podés volver', texto: 'Esta guía queda acá, con el detalle de cada conexión y de su seguridad.' }
+  ];
+  var tourIdx = -1, tourNodos = null;
+
+  function tourCrear() {
+    if (tourNodos) return tourNodos;
+    var fondo = el('div', { id: 'tour-fondo', cls: 'fixed inset-0 z-[500] hidden' });
+    var foco = el('div', { id: 'tour-foco', cls: 'fixed z-[501] rounded-lg pointer-events-none hidden' });
+    var pop = el('div', { id: 'tour-pop', role: 'dialog', 'aria-live': 'polite', cls: 'fixed z-[502] hidden w-80 max-w-[calc(100vw-24px)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4' });
+    document.body.appendChild(fondo); document.body.appendChild(foco); document.body.appendChild(pop);
+    window.addEventListener('resize', function () { if (tourIdx >= 0) tourMostrar(tourIdx, true); });
+    document.addEventListener('keydown', function (e) {
+      if (tourIdx < 0) return;
+      if (e.key === 'Escape') tourSalir();
+      else if (e.key === 'ArrowRight') tourSiguiente();
+      else if (e.key === 'ArrowLeft') tourAnterior();
+    });
+    tourNodos = { fondo: fondo, foco: foco, pop: pop };
+    return tourNodos;
+  }
+
+  function tourPosicionar(paso, destino, i) {
+    var n = tourNodos, pop = n.pop, foco = n.foco, total = PASOS_TOUR.length;
+    var r = destino ? destino.getBoundingClientRect() : null;
+    var visible = !!r && r.width > 0 && r.height > 0;
+
+    vaciar(pop);
+    pop.appendChild(el('div', { cls: 'flex items-start justify-between gap-3 mb-1' }, [
+      el('h4', { cls: 'font-bold text-gray-900 text-sm', text: paso.titulo }),
+      el('span', { cls: 'text-[11px] text-gray-400 shrink-0', text: (i + 1) + ' de ' + total })
+    ]));
+    pop.appendChild(el('p', { cls: 'text-sm text-gray-600 leading-relaxed', text: paso.texto }));
+    pop.appendChild(el('div', { cls: 'flex items-center justify-between mt-4' }, [
+      el('button', { type: 'button', 'data-action': 'tour-salir', cls: 'text-xs text-gray-400 hover:text-gray-600', text: 'Salir' }),
+      el('div', { cls: 'flex gap-2' }, [
+        i > 0 ? el('button', { type: 'button', 'data-action': 'tour-ant', cls: 'px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md hover:bg-gray-50', text: 'Anterior' }) : null,
+        el('button', { type: 'button', 'data-action': 'tour-sig', cls: 'px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-md', text: i === total - 1 ? 'Terminar' : 'Siguiente' })
+      ])
+    ]));
+    pop.classList.remove('hidden');
+
+    var vw = window.innerWidth, vh = window.innerHeight, pw = pop.offsetWidth, ph = pop.offsetHeight, m = 12, pad = 6, x, y;
+    if (visible) {
+      foco.style.left = (r.left - pad) + 'px'; foco.style.top = (r.top - pad) + 'px';
+      foco.style.width = (r.width + pad * 2) + 'px'; foco.style.height = (r.height + pad * 2) + 'px';
+      foco.classList.remove('hidden'); n.fondo.classList.remove('tour-oscuro');
+      if (r.right + m + pw <= vw - m) { x = r.right + m + pad; y = r.top; }                  // a la derecha
+      else if (r.bottom + m + ph <= vh - m) { x = r.left; y = r.bottom + m + pad; }          // debajo
+      else if (r.top - m - ph >= m) { x = r.left; y = r.top - ph - m - pad; }                // arriba
+      else { x = r.left - pw - m - pad; y = r.top; }                                         // a la izquierda
+    } else {
+      foco.classList.add('hidden'); n.fondo.classList.add('tour-oscuro');                    // sin elemento: pantalla atenuada
+      x = (vw - pw) / 2; y = (vh - ph) / 3;
     }
+    pop.style.left = Math.max(m, Math.min(x, vw - pw - m)) + 'px';
+    pop.style.top = Math.max(m, Math.min(y, vh - ph - m)) + 'px';
+  }
 
-    function cambiarVista(vista) {
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-      document.getElementById('nav-' + vista).classList.add('active');
-      ['productos', 'manager', 'cola', 'config'].forEach(v => { document.getElementById('vista-' + v).classList.add('hidden'); document.getElementById('vista-' + v).classList.remove('flex'); });
-      document.getElementById('vista-' + vista).classList.remove('hidden'); document.getElementById('vista-' + vista).classList.add('flex');
-      const titulos = { 'productos': 'Gestión de Inventario', 'manager': 'Diseñador de Posts', 'cola': 'Historial / Cola', 'config': 'Configuración del Sistema' };
-      document.getElementById('header-title').textContent = titulos[vista];
-    }
+  function tourMostrar(i, inmediato) {
+    var paso = PASOS_TOUR[i];
+    if (!paso) return tourSalir();
+    var n = tourCrear();
+    tourIdx = i;
+    if (!$('vista-' + paso.vista).classList.contains('flex')) cambiarVista(paso.vista);
+    if (paso.tab) cambiarTabConfig(paso.tab);
+    n.fondo.classList.remove('hidden');
+    var destino = document.querySelector(paso.sel);
+    if (destino && destino.scrollIntoView) destino.scrollIntoView({ block: 'center', inline: 'nearest' });
+    setTimeout(function () { if (tourIdx === i) tourPosicionar(paso, destino, i); }, inmediato ? 0 : 60);
+  }
 
-    function filtrarTabla(idTabla, query) {
-      const q = query.toLowerCase();
-      const filas = document.getElementById(idTabla).getElementsByTagName('tr');
-      for(let i=0; i<filas.length; i++){
-        let texto = filas[i].textContent || filas[i].innerText;
-        filas[i].style.display = texto.toLowerCase().indexOf(q) > -1 ? "" : "none";
-      }
-    }
+  function iniciarTour() { tourMostrar(0); }
+  function iniciarTourSeccion(vista) {
+    for (var i = 0; i < PASOS_TOUR.length; i++) if (PASOS_TOUR[i].vista === vista) return tourMostrar(i);
+    tourMostrar(0);
+  }
+  function tourSiguiente() { if (tourIdx < 0) return; if (tourIdx >= PASOS_TOUR.length - 1) tourSalir(); else tourMostrar(tourIdx + 1); }
+  function tourAnterior() { if (tourIdx > 0) tourMostrar(tourIdx - 1); }
+  function tourSalir() {
+    tourIdx = -1;
+    if (!tourNodos) return;
+    tourNodos.fondo.classList.add('hidden'); tourNodos.foco.classList.add('hidden'); tourNodos.pop.classList.add('hidden');
+  }
 
-    function renderTablaProductos() {
-      const tbody = document.getElementById('tabla-productos'); tbody.innerHTML = '';
-      state.productos.forEach(p => {
-        const estadoColor = p.estado === 'Activo' ? 'bg-green-100 text-green-700' : (p.estado === 'Inactivo' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${p.sku}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${p.nombre}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><span class="px-2.5 py-1 rounded-md text-xs font-semibold ${estadoColor}">${p.estado}</span></td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-semibold">${p.stock}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
-            <button onclick="abrirModalGaleria('${p.sku}')" class="bg-blue-50 text-blue-600 p-2 rounded hover:bg-blue-100 mr-2" title="Galería"><i class="fa-regular fa-images"></i></button>
-            <button onclick="abrirModalEditar('${p.sku}')" class="bg-orange-50 text-orange-500 p-2 rounded hover:bg-orange-100 mr-2" title="Editar"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="eliminarProductoFront('${p.sku}')" class="bg-red-50 text-red-500 p-2 rounded hover:bg-red-100" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+  // ------------------------------------------------------------------
+  // Cierre de sesión: deja la app limpia (lo llama el script de login)
+  // ------------------------------------------------------------------
+  function reiniciar() {
+    tourSalir();
+    ['modal-nuevo-producto', 'modal-galeria', 'modal-editar', 'modal-editar-post'].forEach(function (id) { var m = $(id); if (m) m.classList.add('hidden'); });
+    cerrarVideo();
+    state.productos = []; state.categorias = []; state.medios = []; state.cola = []; state.config = {}; state.nombreNegocio = '';
+    state.productoActivoManager = null; state.categoriaActivaManager = null; state.productoActivoModal = null;
+    postEditandoId = null; perfilCache = null; tabConfigActual = 'personal'; imagenesNuevasTemp = []; cloudWidget = null;
+    limpiarCarrusel();
+    $('input-producto').value = ''; cerrarCombo(); refrescarBotonLimpiarCombo();
+    ['tabla-productos', 'tabla-cola', 'tabs-container'].forEach(function (id) { vaciar($(id)); });
+    renderizarBibliotecaManager();
+    $('sidebar-negocio').textContent = '';
+    ['inp-cloud-name', 'inp-upload-preset', 'pf-nombre', 'pf-telefono'].forEach(function (id) { $(id).value = ''; });
+    $('chk-iterativo').checked = false;
+    cambiarVista('productos');
+  }
 
-    function renderTablaCola() {
-      const tbody = document.getElementById('tabla-cola');
-      tbody.innerHTML = '';
-      if(state.cola.length === 0) {
-         tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-sm text-gray-400">No hay publicaciones en la cola.</td></tr>';
-         return;
-      }
-      state.cola.forEach(c => {
-        const prod = state.productos.find(p => p.sku === c.sku);
-        const nombreProd = prod ? prod.nombre : '-';
-        
-        const urls = c.urls ? c.urls.split(' * ') : [];
-        let htmlThumbs = '<div class="flex flex-wrap items-center gap-2">';
-        urls.forEach(url => {
-           if(!url) return;
-           const src = obtenerThumbnail(url);
-           const iconPlay = esVideo(url) ? `<div onclick="reproducirVideo('${url}')" class="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/10 hover:bg-black/30 transition-colors"><i class="fa-solid fa-circle-play text-white/90 text-xl drop-shadow-md"></i></div>` : '';
-           htmlThumbs += `<div class="w-14 h-14 bg-blue-50/30 border border-blue-200 rounded-lg p-0.5 flex items-center justify-center relative overflow-hidden shrink-0"><img src="${src}" class="w-full h-full object-cover rounded-md pointer-events-none">${iconPlay}</div>`;
-        });
-        htmlThumbs += '</div>';
+  // ------------------------------------------------------------------
+  // Emojis
+  // ------------------------------------------------------------------
+  function initEmojis() {
+    var popup = $('emoji-popup'), btn = $('btn-emoji'), picker = document.querySelector('emoji-picker');
+    btn.addEventListener('click', function () { popup.classList.toggle('hidden'); });
+    if (picker) picker.addEventListener('emoji-click', function (event) {
+      var ta = $('inp-pie-foto'), ini = ta.selectionStart, fin = ta.selectionEnd, emoji = event.detail.unicode;
+      ta.value = ta.value.substring(0, ini) + emoji + ta.value.substring(fin);
+      ta.selectionStart = ta.selectionEnd = ini + emoji.length;
+      ta.focus(); popup.classList.add('hidden');
+    });
+    document.addEventListener('click', function (e) {
+      if (!popup.classList.contains('hidden') && !popup.contains(e.target) && !btn.contains(e.target)) popup.classList.add('hidden');
+    });
+  }
 
-        const pieTruncado = c.pieFoto ? (c.pieFoto.length > 30 ? c.pieFoto.substring(0, 30) + '...' : c.pieFoto) : '<i class="text-gray-400 text-xs">Generado por IA</i>';
+  // ------------------------------------------------------------------
+  // Eventos (delegación: funciona también con elementos creados dinámicamente
+  // y con los clones que genera Sortable)
+  // ------------------------------------------------------------------
+  var ACCIONES = {
+    'vista': cambiarVista,
+    'cerrar-sesion': function () { window.Auth.cerrarSesion(); },
+    'cerrar-video': cerrarVideo,
+    'nuevo-producto': abrirModalNuevoProducto,
+    'cerrar-nuevo-producto': cerrarModalNuevoProducto,
+    'widget-nuevo': abrirWidgetNuevoProducto,
+    'guardar-nuevo-producto': guardarNuevoProducto,
+    'quitar-foto-temp': function (i) { imagenesNuevasTemp.splice(Number(i), 1); renderizarFotosNuevoProducto(); },
+    'galeria': abrirModalGaleria,
+    'cerrar-galeria': cerrarModalGaleria,
+    'widget-galeria': abrirWidgetGaleria,
+    'del-medio': eliminarMedioFront,
+    'editar': abrirModalEditar,
+    'cerrar-editar': cerrarModalEditar,
+    'guardar-edicion': guardarEdicionProducto,
+    'del-producto': eliminarProductoFront,
+    'automatizar': generarAutomatizacion,
+    'limpiar': limpiarCarrusel,
+    'guardar-post': guardarPost,
+    'aplicar-orden': aplicarOrdenCola,
+    'del-post': eliminarPostFront,
+    'guardar-config': guardarConfig,
+    'editar-post': abrirModalEditarPost,
+    'cerrar-editar-post': cerrarModalEditarPost,
+    'guardar-edicion-post': guardarEdicionPost,
+    'cfg-tab': cambiarTabConfig,
+    'guardar-perfil': guardarPerfil,
+    'tour': iniciarTour,
+    'tour-seccion': iniciarTourSeccion,
+    'tour-sig': tourSiguiente,
+    'tour-ant': tourAnterior,
+    'tour-salir': tourSalir
+  };
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">${c.sku}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">${nombreProd}</td>
-          <td class="px-6 py-4 text-sm">${htmlThumbs}</td>
-          <td class="px-6 py-4 text-sm text-gray-600" title="${c.pieFoto}">${pieTruncado}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
-            <button onclick="eliminarPostFront('${c.id}')" class="bg-red-50 text-red-500 p-2 rounded-md hover:bg-red-100 transition-colors opacity-80 hover:opacity-100" title="Eliminar Publicación"><i class="fa-solid fa-trash"></i></button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+  document.addEventListener('click', function (e) {
+    if (!e.target || !e.target.closest) return;
+    var play = e.target.closest('[data-play]');
+    if (play) { e.stopPropagation(); reproducirVideo(play.getAttribute('data-play')); return; }
+    var nodo = e.target.closest('[data-action]');
+    if (!nodo) return;
+    var fn = ACCIONES[nodo.getAttribute('data-action')];
+    if (fn) fn(nodo.getAttribute('data-arg'));
+  });
 
-    // ELIMINACIÓN EN CASCADA
-    function eliminarProductoFront(sku) {
-      if(!confirm(`⚠️ ATENCIÓN: Al eliminar el producto ${sku} se borrarán también TODOS sus archivos multimedia y las publicaciones pendientes en la cola.\n\n¿Estás seguro de continuar?`)) return;
-      document.getElementById('loader').classList.remove('hidden');
-      
-      google.script.run.withSuccessHandler(skuEliminado => { 
-        // Actualizamos estado de UI
-        state.productos = state.productos.filter(p => p.sku !== skuEliminado); 
-        state.medios = state.medios.filter(m => m.sku !== skuEliminado);
-        state.cola = state.cola.filter(c => c.sku !== skuEliminado);
-        
-        renderTablaProductos(); 
-        renderTablaCola();
-        actualizarDatalistManager(); 
-        
-        if(state.productoActivoManager === skuEliminado) { 
-          state.productoActivoManager = null; 
-          document.getElementById('input-producto').value=''; 
-          renderizarBibliotecaManager(); 
-        } 
-        document.getElementById('loader').classList.add('hidden'); 
-        showToast("Producto y sus datos asociados eliminados"); 
-      }).eliminarProducto(sku);
-    }
+  // Doble clic sobre un medio de la zona de edición lo quita
+  $('carousel-zone').addEventListener('dblclick', function (e) {
+    var card = e.target.closest ? e.target.closest('.img-card') : null;
+    if (card) { card.parentNode.removeChild(card); actualizarContador(); }
+  });
+  $('buscador-productos').addEventListener('keyup', function () { filtrarTabla('tabla-productos', this.value); });
+  initComboProductos();
+  $('chk-iterativo').addEventListener('change', function () { guardarIterativo(this.checked); });
+  initEmojis();
 
-    function aplicarOrdenCola() {
-       const modo = document.getElementById('sel-orden-cola').value;
-       document.getElementById('loader').classList.remove('hidden');
-       
-       google.script.run
-         .withSuccessHandler(nuevaCola => {
-             // Actualizamos el estado local
-             state.config.CiclicoOK = (modo === 'aleatorio') ? '0' : '1';
-             state.cola = nuevaCola;
-             renderTablaCola();
-             document.getElementById('loader').classList.add('hidden');
-             showToast(`Distribución global actualizada a ${modo}.`);
-         })
-         .withFailureHandler(err => {
-             document.getElementById('loader').classList.add('hidden');
-             showToast("Error al aplicar el orden en la base de datos.", "error");
-         })
-         .guardarModoDistribucion(modo);
-    }
+  // ------------------------------------------------------------------
+  // Punto de entrada: lo llama el script de autenticación con los datos
+  // ------------------------------------------------------------------
+  function iniciar(data) {
+    data = data || {};
+    state.productos = data.productos || [];
+    state.categorias = data.categorias || [];
+    state.medios = data.medios || [];
+    state.cola = data.cola || [];
+    state.config = data.config || {};
+    state.nombreNegocio = data.nombreNegocio || '';
+    state.categoriaActivaManager = state.categorias.length ? state.categorias[0].id : null;
 
-    function guardarPost() {
-      const items = document.getElementById('carousel-zone').querySelectorAll('.img-card');
-      if (items.length === 0) return showToast("Agrega contenido a la zona de edición.", "error");
-      if (items.length > 10) return showToast("Instagram permite máximo 10 archivos por carrusel.", "error");
-      
-      const btn = document.getElementById('btn-guardar'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
-      
-      const payload = { 
-        sku: state.productoActivoManager, 
-        urls: Array.from(items).map(i => i.getAttribute('data-url')),
-        pieFoto: document.getElementById('inp-pie-foto').value.trim()
-      };
+    $('sel-orden-cola').value = state.config.CiclicoOK === '0' ? 'aleatorio' : 'ciclico';
+    $('chk-iterativo').checked = String(state.config.RecicladoAutomatico) === '1';
+    $('sidebar-negocio').textContent = state.nombreNegocio;
+    $('inp-cloud-name').value = state.config.CLOUDINARY_CLOUD_NAME || '';
+    $('inp-upload-preset').value = state.config.CLOUDINARY_UPLOAD_PRESET || '';
 
-      // Como la cola se reordena y devuelve entera, actualizamos el array en lugar de hacer un push.
-      google.script.run.withSuccessHandler(nuevaCola => {
-        state.cola = nuevaCola; 
-        renderTablaCola(); 
-        showToast("Publicación encolada correctamente"); 
-        limpiarCarrusel();
-        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar a Make';
-      }).enviarAColaPublicacion(payload);
-    }
+    renderTablaProductos(); renderTablaCola(); actualizarDatalistManager();
+    renderizarTabsManager(); renderizarBibliotecaManager(); poblarSelectCategoriasModales();
+    initSortable(); initCloudinary(); actualizarContador();
+    renderTutoriales();
+    cambiarVista('productos');
+  }
 
-    function eliminarPostFront(idPost) {
-       if(!confirm("¿Estás seguro de eliminar esta publicación? No se enviará a Make.")) return;
-       document.getElementById('loader').classList.remove('hidden');
-       
-       google.script.run.withSuccessHandler(nuevaCola => { 
-         state.cola = nuevaCola; 
-         renderTablaCola(); 
-         document.getElementById('loader').classList.add('hidden'); 
-         showToast("Publicación eliminada de la cola"); 
-       }).withFailureHandler(err => { 
-         document.getElementById('loader').classList.add('hidden'); 
-         showToast("Error al eliminar", "error"); 
-       }).eliminarPostCola(idPost);
-    }
-
-    function poblarSelectCategoriasModales() {
-      const selNP = document.getElementById('np-select-cat'); const selGal = document.getElementById('modal-select-cat');
-      state.categorias.forEach(c => { selNP.add(new Option(c.nombre, c.id)); selGal.add(new Option(c.nombre, c.id)); });
-    }
-
-    function abrirModalNuevoProducto() {
-      imagenesNuevasTemp = []; document.getElementById('np-sku').value = ''; document.getElementById('np-nombre').value = ''; document.getElementById('np-stock').value = '0'; document.getElementById('np-estado').value = 'Activo'; document.getElementById('np-select-cat').value = '';
-      renderizarFotosNuevoProducto(); document.getElementById('modal-nuevo-producto').classList.remove('hidden');
-    }
-    function cerrarModalNuevoProducto() { document.getElementById('modal-nuevo-producto').classList.add('hidden'); }
-    
-    function renderizarFotosNuevoProducto() {
-      const grid = document.getElementById('np-grid-fotos'); const msg = document.getElementById('np-empty-msg');
-      document.querySelectorAll('.np-foto-temp').forEach(el => el.remove());
-      if(imagenesNuevasTemp.length === 0) { msg.style.display = 'block'; } else {
-        msg.style.display = 'none';
-        imagenesNuevasTemp.forEach((obj, idx) => {
-          const div = document.createElement('div'); div.className = 'np-foto-temp bg-white rounded border p-1 aspect-square relative group overflow-hidden';
-          const src = obtenerThumbnail(obj.url); const iconPlay = esVideo(obj.url) ? `<div onclick="reproducirVideo('${obj.url}')" class="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-black/20 transition-colors"><i class="fa-solid fa-circle-play text-white/90 text-3xl drop-shadow-md"></i></div>` : '';
-          div.innerHTML = `<img src="${src}" class="w-full h-full object-cover rounded">${iconPlay}<span class="absolute bottom-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none">${obj.categoria}</span><button onclick="borrarFotoTemp(${idx})" class="absolute top-1 right-1 bg-red-600/90 text-white rounded p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-trash"></i></button>`;
-          grid.appendChild(div);
-        });
-      }
-    }
-    
-    function borrarFotoTemp(idx) { imagenesNuevasTemp.splice(idx, 1); renderizarFotosNuevoProducto(); }
-
-    function abrirWidgetNuevoProducto() {
-      const cat = document.getElementById('np-select-cat').value;
-      if(!cat) return showToast('Por favor, selecciona primero el tipo de medio a subir', 'error');
-      if(!cloudWidget) return showToast("Falta configuración de Cloudinary", "error");
-      contextoSubida = 'nuevo'; categoriaTempUpload = cat; cloudWidget.open();
-    }
-
-    function guardarNuevoProducto() {
-      const sku = document.getElementById('np-sku').value.trim(); const nombre = document.getElementById('np-nombre').value.trim(); const stock = document.getElementById('np-stock').value || 0; const estado = document.getElementById('np-estado').value;
-      if(!sku || !nombre) return showToast("SKU y Nombre son obligatorios", "error");
-      const btn = document.getElementById('btn-guardar-nuevo'); btn.disabled = true; btn.innerText = "Guardando...";
-      google.script.run
-        .withSuccessHandler(res => { state.productos.push(res.producto); state.medios = state.medios.concat(res.mediosNuevos); renderTablaProductos(); actualizarDatalistManager(); cerrarModalNuevoProducto(); showToast("Producto creado exitosamente"); btn.disabled = false; btn.innerText = "Guardar Producto Final"; })
-        .withFailureHandler(err => { showToast(err.message || "Error al crear", "error"); btn.disabled = false; btn.innerText = "Guardar Producto Final"; })
-        .crearProductoConImagenes({ sku: sku, nombre: nombre, stock: stock, estado: estado, imagenes: imagenesNuevasTemp });
-    }
-
-    function abrirModalEditar(sku) {
-      const prod = state.productos.find(p => p.sku === sku);
-      document.getElementById('ed-sku').value = prod.sku; document.getElementById('ed-nombre').value = prod.nombre; document.getElementById('ed-stock').value = prod.stock; document.getElementById('ed-estado').value = prod.estado || 'Activo';
-      document.getElementById('modal-editar').classList.remove('hidden');
-    }
-    function cerrarModalEditar() { document.getElementById('modal-editar').classList.add('hidden'); }
-    function guardarEdicionProducto() {
-      const sku = document.getElementById('ed-sku').value; const nom = document.getElementById('ed-nombre').value; const stk = document.getElementById('ed-stock').value; const est = document.getElementById('ed-estado').value;
-      document.getElementById('loader').classList.remove('hidden');
-      google.script.run.withSuccessHandler(res => { const prod = state.productos.find(p => p.sku === sku); prod.nombre = res.nombre; prod.stock = res.stock; prod.estado = res.estado; renderTablaProductos(); actualizarDatalistManager(); cerrarModalEditar(); document.getElementById('loader').classList.add('hidden'); showToast("Producto actualizado"); }).actualizarProducto(sku, nom, stk, est);
-    }
-
-    function abrirModalGaleria(sku) { 
-      state.productoActivoModal = sku; document.getElementById('modal-titulo').textContent = `Galería: ${sku}`; document.getElementById('modal-select-cat').value = ''; renderizarFotosModal(); document.getElementById('modal-galeria').classList.remove('hidden'); 
-    }
-    function cerrarModalGaleria() { document.getElementById('modal-galeria').classList.add('hidden'); state.productoActivoModal = null; renderizarBibliotecaManager(); }
-    
-    function abrirWidgetGaleria() { 
-      if(!document.getElementById('modal-select-cat').value) return showToast("Selecciona el tipo de medio antes de subir", "error");
-      if(!cloudWidget) return showToast("Falta configuración de Cloudinary", "error"); 
-      contextoSubida = 'galeria'; cloudWidget.open(); 
-    }
-
-    function renderizarFotosModal() {
-      const grid = document.getElementById('modal-grid-fotos'); grid.innerHTML = '';
-      const fotos = state.medios.filter(m => m.sku === state.productoActivoModal);
-      if(fotos.length === 0) return grid.innerHTML = '<div class="col-span-full text-center text-gray-500 mt-10">No hay archivos registrados.</div>';
-      fotos.forEach(foto => {
-        const div = document.createElement('div'); div.className = 'bg-white rounded border shadow-sm p-1 aspect-square relative group overflow-hidden';
-        const src = obtenerThumbnail(foto.url); const iconPlay = esVideo(foto.url) ? `<div onclick="reproducirVideo('${foto.url}')" class="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-black/20 transition-colors"><i class="fa-solid fa-circle-play text-white/90 text-3xl drop-shadow-md"></i></div>` : '';
-        div.innerHTML = `<img src="${src}" class="w-full h-full object-cover rounded pointer-events-none">${iconPlay}<span class="absolute top-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none">${foto.categoria}</span><button onclick="eliminarMedioFront('${foto.id}')" class="absolute inset-0 bg-red-600/90 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded"><i class="fa-solid fa-trash text-xl"></i></button>`;
-        grid.appendChild(div);
-      });
-    }
-
-    function eliminarMedioFront(idMedio) {
-      if(!confirm("¿Borrar este archivo definitivamente?")) return;
-      google.script.run.withSuccessHandler(idBorrado => { state.medios = state.medios.filter(m => m.id !== idBorrado); renderizarFotosModal(); showToast("Archivo eliminado"); }).eliminarMedio(idMedio);
-    }
-
-    function initCloudinary() {
-      if(!state.config.CLOUDINARY_CLOUD_NAME || !state.config.CLOUDINARY_UPLOAD_PRESET) return;
-      cloudWidget = cloudinary.createUploadWidget({ cloudName: state.config.CLOUDINARY_CLOUD_NAME, uploadPreset: state.config.CLOUDINARY_UPLOAD_PRESET, sources: ['local', 'url'], multiple: true, resourceType: "auto" }, (error, result) => { 
-        if (!error && result && result.event === "success") {
-          const url = result.info.secure_url;
-          if (contextoSubida === 'nuevo') { imagenesNuevasTemp.push({url: url, categoria: categoriaTempUpload}); renderizarFotosNuevoProducto(); } 
-          else if (contextoSubida === 'galeria') { const catActiva = document.getElementById('modal-select-cat').value; google.script.run.withSuccessHandler(nuevoMedio => { state.medios.push(nuevoMedio); renderizarFotosModal(); }).guardarNuevoMedio(url, state.productoActivoModal, catActiva); }
-        }
-      });
-    }
-
-    function actualizarDatalistManager() {
-      const dl = document.getElementById('lista-productos'); dl.innerHTML = '';
-      state.productos.forEach(p => { const opt = document.createElement('option'); opt.value = `${p.sku} - ${p.nombre}`; dl.appendChild(opt); });
-    }
-
-    function seleccionarProductoManager() {
-      const val = document.getElementById('input-producto').value; const sku = val.split(' - ')[0]; const existe = state.productos.find(p => p.sku === sku);
-      if(existe) { state.productoActivoManager = sku; limpiarCarrusel(); renderizarBibliotecaManager(); } else { state.productoActivoManager = null; renderizarBibliotecaManager(); }
-    }
-
-    function renderizarTabsManager() {
-      const container = document.getElementById('tabs-container'); container.innerHTML = '';
-      state.categorias.forEach(cat => {
-        const btn = document.createElement('button'); btn.textContent = cat.nombre;
-        btn.onclick = () => { state.categoriaActivaManager = cat.id; renderizarTabsManager(); renderizarBibliotecaManager(); };
-        btn.className = cat.id === state.categoriaActivaManager ? 'pb-3 px-2 text-sm tab-active' : 'pb-3 px-2 text-sm tab-inactive hover:text-gray-900'; container.appendChild(btn);
-      });
-    }
-
-    function renderizarBibliotecaManager() {
-      const grid = document.getElementById('library-grid'); grid.innerHTML = '';
-      if (!state.productoActivoManager) return grid.innerHTML = '<div class="col-span-full text-center text-gray-400 mt-10 text-sm">Selecciona o busca un producto arriba.</div>';
-      const fotos = state.medios.filter(m => m.sku === state.productoActivoManager && m.categoria === state.categoriaActivaManager);
-      if (fotos.length === 0) return grid.innerHTML = '<div class="col-span-full text-center text-gray-400 text-sm mt-10">No hay archivos en esta pestaña.</div>';
-      fotos.forEach(foto => {
-        const div = document.createElement('div'); div.className = 'img-card drag-card bg-white rounded-lg border border-gray-200 p-1 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 flex items-center justify-center relative shadow-sm hover:shadow-md overflow-hidden'; div.setAttribute('data-url', foto.url);
-        const src = obtenerThumbnail(foto.url); const iconPlay = esVideo(foto.url) ? `<div onclick="reproducirVideo('${foto.url}')" class="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-black/20 transition-colors z-10"><i class="fa-solid fa-circle-play text-white/90 text-2xl drop-shadow-md"></i></div>` : '';
-        div.innerHTML = `<img src="${src}" class="max-w-full max-h-full object-cover pointer-events-none rounded">${iconPlay}`;
-        div.ondblclick = function(e) { if(e.target.tagName !== 'DIV' && this.parentElement.id === 'carousel-zone') { this.remove(); actualizarContador(); } }; grid.appendChild(div);
-      });
-    }
-
-    function initSortable() {
-      sortableLibrary = new Sortable(document.getElementById('library-grid'), { group: { name: 'shared', pull: 'clone', put: false }, animation: 150, sort: false, filter: '.fa-circle-play' });
-      sortableCarousel = new Sortable(document.getElementById('carousel-zone'), { group: { name: 'shared', pull: false, put: true }, animation: 150, onAdd: actualizarContador, onUpdate: actualizarContador });
-    }
-
-    function actualizarContador() {
-      const items = document.getElementById('carousel-zone').querySelectorAll('.img-card'); document.getElementById('counter').textContent = `${items.length} items`; document.getElementById('empty-carousel-msg').style.display = items.length > 0 ? 'none' : 'block';
-    }
-
-    function limpiarCarrusel() { document.getElementById('carousel-zone').querySelectorAll('.img-card').forEach(el => el.remove()); actualizarContador(); document.getElementById('inp-pie-foto').value = ''; }
-
-    function generarAutomatizacion() {
-      if(!state.productoActivoManager) return showToast("Selecciona un producto primero", "error");
-      const mediosProd = state.medios.filter(m => m.sku === state.productoActivoManager);
-      if(mediosProd.length === 0) return showToast("El producto seleccionado no tiene archivos.", "error");
-      
-      limpiarCarrusel(); 
-      
-      const branded = mediosProd.filter(m => m.categoria.toUpperCase().includes('BRAND'));
-      const producto = mediosProd.filter(m => m.categoria.toUpperCase().includes('PROD'));
-      const modelo = mediosProd.filter(m => m.categoria.toUpperCase().includes('MOD'));
-      
-      const pattern = Math.floor(Math.random() * 3);
-      let seleccion = [];
-      const getRandom = (arr, n) => arr.sort(() => 0.5 - Math.random()).slice(0, n);
-      
-      if (pattern === 0) { 
-          if(branded.length === 0) showToast("Aviso: Completando patrón con fotos de Producto.", "info");
-          seleccion = [
-              ...getRandom(modelo.length ? modelo : producto, 1),
-              ...getRandom(producto.length ? producto : mediosProd, 2),
-              ...getRandom(branded.length ? branded : (producto.length ? producto : mediosProd), 1)
-          ];
-      } else if (pattern === 1) { 
-          seleccion = [
-              ...getRandom(producto.length ? producto : mediosProd, 3),
-              ...getRandom(modelo.length ? modelo : (producto.length ? producto : mediosProd), 1)
-          ];
-      } else { 
-          const pool = modelo.length ? modelo : (producto.length ? producto : mediosProd);
-          seleccion = getRandom(pool, 1);
-      }
-      
-      const uniqueSeleccion = [...new Map(seleccion.map(item => [item.url, item])).values()];
-      
-      const zone = document.getElementById('carousel-zone');
-      uniqueSeleccion.forEach(foto => {
-          const div = document.createElement('div');
-          div.className = 'img-card drag-card bg-white rounded-lg border border-gray-200 p-1 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 flex items-center justify-center relative shadow-sm hover:shadow-md overflow-hidden'; 
-          div.setAttribute('data-url', foto.url);
-          const src = obtenerThumbnail(foto.url); 
-          const iconPlay = esVideo(foto.url) ? `<div onclick="reproducirVideo('${foto.url}')" class="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-black/20 transition-colors z-10"><i class="fa-solid fa-circle-play text-white/90 text-2xl drop-shadow-md"></i></div>` : '';
-          div.innerHTML = `<img src="${src}" class="max-w-full max-h-full object-cover pointer-events-none rounded">${iconPlay}`;
-          div.ondblclick = function(e) { if(e.target.tagName !== 'DIV' && this.parentElement.id === 'carousel-zone') { this.remove(); actualizarContador(); } }; 
-          zone.appendChild(div);
-      });
-      actualizarContador();
-      const nombresPatrones = ["Lookbook", "Catálogo Comercial", "Impacto Simple"];
-      showToast(`Generado automáticamente (Patrón: ${nombresPatrones[pattern]})`);
-    }
-
-    function guardarConfig() {
-      const cn = document.getElementById('inp-cloud-name').value.trim(); const up = document.getElementById('inp-upload-preset').value.trim();
-      document.getElementById('loader').classList.remove('hidden');
-      google.script.run.withSuccessHandler(res => { state.config = res; initCloudinary(); document.getElementById('loader').classList.add('hidden'); showToast("Configuración actualizada"); }).guardarConfiguracion(cn, up);
-    }
-  </script>
+  window.App = { iniciar: iniciar, reiniciar: reiniciar };
+})();
+</script>
 </body>
 </html>
