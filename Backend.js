@@ -19,14 +19,22 @@ var BLOQUEO_SEG = 900;     // ...dentro de esta ventana (15 min)
 // ENTRADA DE LA WEB APP
 // ============================================================================
 function doGet(e) {
-  // Interceptar la llamada HTTP desde Make
-  if (e && e.parameter && e.parameter.action === 'reciclarCola' && e.parameter.idSheet) {
+  // Se agrega en las propiedades del proyecto el MAKE_SECRET 
+  // Interceptar la llamada HTTP desde Make (requiere clave secreta)
+  if (e && e.parameter && e.parameter.action === 'reciclarCola') {
+    var secreto = PropertiesService.getScriptProperties().getProperty('MAKE_SECRET');
+    var recibido = String(e.parameter.key || '');
+    if (!secreto || !_igualesConstante(recibido, secreto)) {
+      return ContentService.createTextOutput(JSON.stringify({ estado: 'ERROR', mensaje: 'No autorizado.' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     try {
-      var ss = SpreadsheetApp.openById(e.parameter.idSheet);
+      var ss = SpreadsheetApp.openById(String(e.parameter.idSheet || ''));
       var resultado = _revisarYReiniciarColaInterno(ss);
       return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
     } catch (error) {
-      return ContentService.createTextOutput(JSON.stringify({ estado: 'ERROR', mensaje: error.message })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ estado: 'ERROR', mensaje: 'No se pudo procesar la solicitud.' }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
   }
 
@@ -52,6 +60,46 @@ function _hashPassword(password, salt) {
     var hex = v.toString(16);
     return hex.length === 1 ? '0' + hex : hex;
   }).join('');
+}
+
+// Hash v2 (con stretching). Se guarda con prefijo "v2$" para distinguirlo del hash viejo.
+var HASH_V2_PREFIX = 'v2$';
+var HASH_ITERACIONES = 2000;
+
+function _bytesAHex(raw) {
+  return raw.map(function (byte) {
+    var v = (byte < 0) ? byte + 256 : byte;
+    var hex = v.toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }).join('');
+}
+
+function _hashPasswordV2(password, salt) {
+  var h = password + salt;
+  for (var n = 0; n < HASH_ITERACIONES; n++) {
+    h = _bytesAHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, h + salt, Utilities.Charset.UTF_8));
+  }
+  return HASH_V2_PREFIX + h;
+}
+
+// Valida contra el hash guardado, sea v1 (viejo) o v2. Indica si hay que migrar.
+function _verificarPassword(password, salt, hashGuardado) {
+  hashGuardado = String(hashGuardado);
+  if (hashGuardado.indexOf(HASH_V2_PREFIX) === 0) {
+    return { ok: _igualesConstante(_hashPasswordV2(password, salt), hashGuardado), migrar: false };
+  }
+  return { ok: _igualesConstante(_hashPassword(password, salt), hashGuardado), migrar: true };
+}
+
+// Comparación de tiempo constante (evita filtrar información por temporización)
+function _igualesConstante(a, b) {
+  a = String(a); b = String(b);
+  var diff = a.length ^ b.length;
+  var max = Math.max(a.length, b.length);
+  for (var i = 0; i < max; i++) {
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  }
+  return diff === 0;
 }
 
 function _hojaUsuarios() {
@@ -87,6 +135,10 @@ function _normalizarTelefonoAR(raw) {
   if (d.length === 10) return '549' + d;
   if (d.indexOf('54') === 0 && d.charAt(2) !== '9' && d.length === 12) return '549' + d.substring(2);
   return d;
+}
+
+function _urlValida(u) {
+  return /^https:\/\/res\.cloudinary\.com\//i.test(String(u || ''));
 }
 
 // ============================================================================
@@ -162,7 +214,7 @@ function registrarUsuario(payload) {
     ws.getRange(fila, 1, 1, 13).setValues([[
       'USR-' + Utilities.getUuid().split('-')[0].toUpperCase(),
       email, telefono, nombreNegocio,
-      _hashPassword(password, salt), salt,
+      _hashPasswordV2(password, salt), salt,
       'Pendiente_Aprobacion', '', '',
       new Date(), '', '', ''
     ]]);
@@ -193,8 +245,13 @@ function loginUsuario(email, password) {
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][COL.EMAIL]).trim().toLowerCase() !== email) continue;
 
-    if (_hashPassword(password, String(data[i][COL.SALT])) !== String(data[i][COL.HASH])) fallar();
-    cache.remove(key);
+  var salt = String(data[i][COL.SALT]);
+  var chk = _verificarPassword(password, salt, data[i][COL.HASH]);
+  if (!chk.ok) fallar();
+  if (chk.migrar) {
+    // Contraseña correcta con hash viejo: se actualiza al hash nuevo
+    ws.getRange(i + 1, COL.HASH + 1).setNumberFormat('@').setValue(_hashPasswordV2(password, salt));
+  }
 
     var estado = String(data[i][COL.ESTADO] || '').trim() || 'Pendiente_Aprobacion';
     var nombre = String(data[i][COL.NEGOCIO]);
@@ -321,9 +378,12 @@ function getInitialData(token) {
 function _setConfig(ws, clave, valor) {
   var data = ws.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === clave) { ws.getRange(i + 1, 2).setValue(valor); return; }
+    if (String(data[i][0]) === clave) {
+      ws.getRange(i + 1, 2).setNumberFormat('@').setValue(valor);
+      return;
+    }
   }
-  ws.appendRow([clave, valor]);
+  _appendFila(ws, [clave, valor], [1, 2]);
 }
 
 function guardarConfiguracion(token, cloudName, uploadPreset) {
@@ -388,6 +448,7 @@ function crearProductoConImagenes(token, payload) {
     if (imagenes.length > 0) {
       var wsMedios = _hoja(ss, 'Galeria_Medios');
       imagenes.forEach(function (img) {
+        if (!_urlValida(img.url)) throw new Error('Una de las imágenes tiene una dirección inválida.');
         var idMedio = 'MED-' + Utilities.getUuid().split('-')[0].toUpperCase();
         _appendFila(wsMedios, [idMedio, sku, String(img.categoria), String(img.url)], [1, 2, 3, 4]);
         mediosGuardados.push({ id: idMedio, sku: sku, categoria: String(img.categoria), url: String(img.url) });
@@ -454,6 +515,7 @@ function eliminarProducto(token, sku) {
 function guardarNuevoMedio(token, url, sku, categoria) {
   var ss = _ctx(token).ss;
   if (!url || !sku || !categoria) throw new Error('Faltan datos del archivo.');
+  if (!_urlValida(url)) throw new Error('La dirección del archivo no es válida.');
   var idMedio = 'MED-' + Utilities.getUuid().split('-')[0].toUpperCase();
   _conLock(function () {
     _appendFila(_hoja(ss, 'Galeria_Medios'), [idMedio, String(sku), String(categoria), String(url)], [1, 2, 3, 4]);
@@ -483,6 +545,7 @@ function enviarAColaPublicacion(token, payload) {
   if (!payload.sku) throw new Error('Seleccioná un producto.');
   if (urls.length === 0) throw new Error('Agregá al menos un archivo.');
   if (urls.length > 10) throw new Error('Instagram permite máximo 10 archivos por carrusel.');
+  urls.forEach(function (u) { if (!_urlValida(u)) throw new Error('Uno de los archivos tiene una dirección inválida.'); });
 
   return _conLock(function () {
     var idPost = 'POST-' + Utilities.getUuid().split('-')[0].toUpperCase();
@@ -585,7 +648,7 @@ function actualizarPostCola(token, payload) {
   if (urls.length === 0) throw new Error('La publicación necesita al menos un archivo.');
   if (urls.length > 10) throw new Error('Instagram permite máximo 10 archivos por carrusel.');
   for (var u = 0; u < urls.length; u++) {
-    if (!/^https?:\/\//i.test(urls[u])) throw new Error('Uno de los archivos tiene una dirección inválida.');
+    if (!_urlValida(urls[u])) throw new Error('Uno de los archivos tiene una dirección inválida.');
   }
   var pie = String(payload.pieFoto || '');
   if (pie.length > 2200) throw new Error('El pie de foto supera los 2200 caracteres que admite Instagram.');
@@ -663,6 +726,10 @@ function guardarPerfil(token, nombreNegocio, telefono) {
 // accesible. Resultado en Ver > Registros de ejecución.
 // ============================================================================
 function verificarConfiguracion() {
+  // Solo el dueño del script puede ejecutarla (bloquea llamadas desde la web app)
+  if (Session.getActiveUser().getEmail() !== Session.getEffectiveUser().getEmail()) {
+    throw new Error('No autorizado.');
+  }
   var log = [];
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   log.push('Sheet Maestro: ' + ss.getName());
