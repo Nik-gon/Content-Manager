@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <base target="_top">
   <meta charset="utf-8">
+  <!-- Tailwind (play CDN) y el widget de Cloudinary no admiten SRI porque el proveedor los actualiza sin avisar: son los dos únicos scripts sin fijar. -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.29.1/index.js" integrity="sha384-K6agUzbeMc1GXMXkIluupxooxm0lI/miwK1KgDxZqBS19dXN9xTv3eEg8qOjpQ2q" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
   <style>
-    emoji-picker { width: 320px; height: 320px; }
+    emoji-picker { width: min(320px, calc(100vw - 2rem)); height: 320px; }
     .nav-item { cursor: pointer; transition: all 0.2s; }
     .nav-item.active { background-color: #eff6ff; color: #3b82f6; font-weight: 600; border-left: 4px solid #3b82f6; }
     .nav-item:not(.active) { border-left: 4px solid transparent; }
@@ -36,6 +37,15 @@
     @keyframes magiaBrillo { 0%, 60% { left: -60%; } 100% { left: 130%; } }
     @keyframes aparecerItem { from { opacity: 0; transform: scale(.6) translateY(8px); } to { opacity: 1; transform: none; } }
     .item-magia { animation: aparecerItem .35s ease-out both; }
+
+    /* Insignia "Nueva versión Mobile" */
+    .badge-nuevo { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: .4rem; color: #fff; font-weight: 700; letter-spacing: .02em;
+      background: linear-gradient(120deg, #6366f1, #d946ef, #f59e0b, #6366f1); background-size: 300% 100%; animation: magiaFlujo 6s linear infinite;
+      box-shadow: 0 2px 10px rgba(217,70,239,.35); }
+    .badge-nuevo::after { content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); transform: skewX(-20deg); animation: magiaBrillo 3.2s ease-in-out infinite; }
+    .badge-nuevo .punto { width: .45rem; height: .45rem; border-radius: 9999px; background: #fff; animation: latido 1.4s ease-in-out infinite; }
+    @keyframes latido { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.7); opacity: .45; } }
 
     /* Numeración automática de los medios (orden de publicación) */
     #carousel-zone, #ep-medios { counter-reset: orden; }
@@ -68,16 +78,77 @@
     .hero-tile { transform-box: fill-box; transform-origin: center; animation: tileIn .45s cubic-bezier(.2,.9,.3,1.3) both; animation-delay: calc(var(--i) * 110ms + 250ms); }
     @keyframes tileIn { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
 
+    /* =====================  RESPONSIVE  ===================== */
+    /* Alto real en celulares: la barra del navegador no tapa el contenido */
+    @supports (height: 100dvh) { body { height: 100dvh !important; } }
+
+    /* Menú lateral: fijo en escritorio (>=1024px), cajón deslizante en pantallas más chicas */
+    #menu-overlay { display: none; }
+    #btn-menu { display: none; }
+    @media (max-width: 1023px) {
+      #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; width: min(18rem, 85vw); transform: translateX(-100%); visibility: hidden; transition: transform .22s ease, visibility 0s linear .22s; }
+      #sidebar.abierto { transform: none; visibility: visible; transition: transform .22s ease, visibility 0s; box-shadow: 0 0 40px rgba(0,0,0,.28); }
+      #menu-overlay.abierto { display: block; position: fixed; inset: 0; z-index: 45; background: rgba(17,24,39,.5); }
+      #btn-menu { display: inline-flex; }
+      #sidebar .nav-item { padding-top: .9rem; padding-bottom: .9rem; }
+      #sidebar > div:first-child { padding: 1.25rem 1rem; gap: .5rem; }
+      #sidebar h1 { white-space: nowrap; }
+      #sidebar .sb-version { font-size: .75rem; color: #9ca3af; }
+    }
+
+    /* Tablas: en celular cada fila se muestra como una tarjeta (la etiqueta sale de data-label) */
+    @media (max-width: 767px) {
+      .tbl-resp thead { display: none; }
+      .tbl-resp, .tbl-resp tbody { display: block; width: 100%; }
+      .tbl-resp tr { display: block; padding: .75rem 1rem; }
+      .tbl-resp td { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .35rem 0 !important; white-space: normal !important; text-align: right; }
+      .tbl-resp td::before { content: attr(data-label); flex-shrink: 0; font-size: .75rem; font-weight: 600; color: #9ca3af; text-align: left; }
+      .tbl-resp td:not([data-label])::before { content: none; }
+      .tbl-resp td[colspan] { justify-content: center; text-align: center; }
+      .tbl-resp td.td-bloque { flex-direction: column; align-items: flex-start; text-align: left; }
+      .tbl-resp td button { min-width: 2.5rem; min-height: 2.5rem; }
+      /* 16px evita el zoom automático de iOS al tocar un campo */
+      input, select, textarea { font-size: 16px !important; }
+    }
+
+    /* Botones táctiles de la zona de edición (en escritorio se arrastra y se quita con doble clic) */
+    .btn-agregar-medio, .btn-quitar-medio { display: none; position: absolute; z-index: 15; width: 1.75rem; height: 1.75rem; align-items: center; justify-content: center; border-radius: 9999px; font-size: .75rem; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+    .btn-agregar-medio { right: .25rem; bottom: .25rem; background: #2563eb; }
+    .btn-quitar-medio { right: .25rem; top: .25rem; background: rgba(220,38,38,.92); }
+    .hint-tactil { display: none; }
+    @media (hover: none), (max-width: 1023px) {
+      #library-grid .btn-agregar-medio { display: flex; }
+      #carousel-zone .btn-quitar-medio { display: flex; }
+      .hint-tactil { display: block; }
+      #library-grid .img-card.en-zona { outline: 2px solid #2563eb; outline-offset: -2px; }
+    }
+    /* Pantallas sin mouse: el borrar de la galería no puede depender del "hover" */
+    @media (hover: none) {
+      .btn-del-medio { inset: auto !important; top: .25rem !important; right: .25rem !important; width: 2rem; height: 2rem; opacity: 1 !important; border-radius: 9999px !important; background: rgba(220,38,38,.92) !important; }
+      .btn-del-medio i { font-size: .8rem !important; }
+      .btn-del-temp { opacity: 1 !important; width: 1.75rem; height: 1.75rem; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .btn-magia, .btn-magia::after, .item-magia, .hero-tile { animation: none; }
+      #sidebar { transition: none; }
+      .btn-magia, .btn-magia::after, .item-magia, .hero-tile, .badge-nuevo, .badge-nuevo::after, .badge-nuevo .punto { animation: none; }
       #tour-foco { transition: none; }
+      
+    }
+
+    /* Tooltips: en mouse abren con hover/foco; en táctil se abren con toque (clase .abierto) */
+    .tip-box { display: none; }
+    .tip-box.abierto { display: block; }
+    @media (hover: hover) {
+      .tip-grupo:hover .tip-box,
+      .tip-grupo:focus-within .tip-box { display: block; }
     }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 h-screen flex overflow-hidden font-sans">
 
   <!-- TOASTS -->
-  <div id="toast-container" class="fixed top-5 right-5 z-[400] flex flex-col gap-3"></div>
+  <div id="toast-container" class="fixed top-3 left-3 right-3 sm:left-auto sm:top-5 sm:right-5 sm:max-w-sm z-[400] flex flex-col gap-3 pointer-events-none"></div>
 
   <!-- LOADER -->
   <div id="loader" class="fixed inset-0 bg-white/90 z-[350] flex flex-col items-center justify-center">
@@ -88,23 +159,30 @@
   <!-- MODAL: REPRODUCTOR DE VIDEO -->
   <div id="modal-video" class="fixed inset-0 bg-black/95 z-[250] hidden flex-col justify-center items-center backdrop-blur-sm">
     <button type="button" data-action="cerrar-video" class="absolute top-6 right-6 text-white/70 hover:text-white text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
-    <video id="video-player" controls class="max-w-4xl max-h-[85vh] rounded-lg shadow-2xl bg-black outline-none"></video>
+    <video id="video-player" controls class="w-[calc(100%-1.5rem)] max-w-4xl max-h-[85vh] rounded-lg shadow-2xl bg-black outline-none"></video>
   </div>
 
   <!-- ======================================================================= -->
   <!-- AUTENTICACIÓN: login / registro / estado de cuenta                       -->
   <!-- ======================================================================= -->
-  <div id="auth-overlay" class="fixed inset-0 bg-gray-50 z-[300] flex items-center justify-center p-4 overflow-auto">
+  <div id="auth-overlay" class="fixed inset-0 bg-gray-50 z-[300] flex justify-center p-4 pt-16 sm:pt-4 overflow-auto">
     <button type="button" id="btn-que-es-top" class="absolute top-4 right-4 inline-flex items-center gap-2 text-sm font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-3 py-1.5 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500">
       <i class="fa-regular fa-circle-question"></i> ¿Qué es esto?
     </button>
-    <div class="w-full max-w-md">
+    <div class="w-full max-w-md my-auto">
       <div class="text-center mb-6">
         <div class="bg-blue-600 text-white w-12 h-12 rounded-lg flex items-center justify-center shadow-sm mx-auto mb-3">
           <i class="fa-solid fa-layer-group text-lg"></i>
         </div>
         <h1 class="text-xl font-bold text-gray-900">Auto Manager</h1>
-        <p>1.0.1</p>
+        <div class="mt-2 flex flex-col items-center gap-1.5">
+          <span class="badge-nuevo text-xs px-3.5 py-1.5 rounded-full">
+            <span class="punto"></span>
+            <i class="fa-solid fa-mobile-screen-button"></i>
+            NUEVA VERSIÓN MOBILE
+          </span>
+          <span class="text-xs text-gray-400">v<span class="am-version">1.1.0</span></span>
+        </div>
       </div>
 
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -132,7 +210,7 @@
                 <input type="checkbox" id="login-recordar" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"> Recordar usuario
               </label>
               <label class="inline-flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                <input type="checkbox" id="login-mantener" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"> Mantener la sesión iniciada en este dispositivo
+                <input type="checkbox" id="login-mantener" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"> Mantener la sesión iniciada en este dispositivo
               </label>
             </div>
             <p id="login-error" class="text-xs text-red-600 hidden"></p>
@@ -160,7 +238,7 @@
               <input type="tel" id="reg-telefono" placeholder="Ej: 5491122334455" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500">
             </div>
             <div>
-              <label for="reg-password" class="block text-xs font-semibold text-gray-700 mb-1">Contraseña (mínimo 6 caracteres)</label>
+              <label for="reg-password" class="block text-xs font-semibold text-gray-700 mb-1">Contraseña (mínimo 10 caracteres)</label>
               <div class="relative">
                 <input type="password" id="reg-password" autocomplete="new-password" class="w-full pl-3 pr-10 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500">
                 <button type="button" data-toggle-pass="reg-password" aria-label="Mostrar contraseña" aria-pressed="false" class="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-blue-600"><i class="fa-regular fa-eye"></i></button>
@@ -215,7 +293,11 @@
           <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center"><i class="fa-solid fa-layer-group"></i></div>
             <span class="font-bold tracking-tight">Auto Manager</span>
-            <p>1.0.1</p>
+            <span class="badge-nuevo text-[11px] px-3 py-1 rounded-full">
+              <span class="punto"></span>
+              <i class="fa-solid fa-mobile-screen-button"></i>
+              MOBILE · v<span class="am-version">1.1.0</span>
+            </span>
           </div>
           <div class="flex items-center gap-2">
             <button type="button" id="btn-info-login" class="text-sm font-semibold px-4 py-2 rounded-lg border border-white/25 hover:bg-white/10 transition-colors">Ya tengo cuenta</button>
@@ -406,14 +488,22 @@
   <!-- ======================================================================= -->
   <div id="app-container" class="hidden flex w-full h-full">
 
-  <!-- SIDEBAR -->
-  <aside class="w-64 bg-white border-r shadow-sm flex flex-col shrink-0 z-20">
+  <!-- SIDEBAR (en pantallas < 1024px es un cajón que se abre con el botón de la cabecera) -->
+  <div id="menu-overlay" data-action="cerrar-menu" aria-hidden="true"></div>
+  <aside id="sidebar" aria-label="Menú principal" class="w-64 bg-white border-r shadow-sm flex flex-col shrink-0 z-20">
     <div class="p-6 border-b flex items-center gap-3">
       <div class="bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center shadow-sm"><i class="fa-solid fa-layer-group text-sm"></i></div>
-      <h1 class="text-lg font-bold text-gray-900 tracking-tight">Auto Manager</h1>
-      <p>1.0.1</p>
+      <div class="min-w-0">
+        <h1 class="text-lg font-bold text-gray-900 tracking-tight leading-tight">Auto Manager</h1>
+        <span class="badge-nuevo text-[10px] px-2.5 py-0.5 rounded-full mt-1">
+          <span class="punto"></span>
+          <i class="fa-solid fa-mobile-screen-button text-[9px]"></i>
+          MOBILE v<span class="am-version">1.1.0</span>
+        </span>
+      </div>
+      <button type="button" id="btn-menu-cerrar" data-action="cerrar-menu" aria-label="Cerrar menú" class="ml-auto lg:hidden w-8 h-8 items-center justify-center rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <nav class="flex-1 py-4 flex flex-col gap-1">
+    <nav class="flex-1 py-4 flex flex-col gap-1 overflow-y-auto">
       <div data-action="vista" data-arg="productos" id="nav-productos" class="nav-item active px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3"><i class="fa-solid fa-box-open w-5 text-center"></i> Inventario</div>
       <div data-action="vista" data-arg="manager" id="nav-manager" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3"><i class="fa-solid fa-wand-magic-sparkles w-5 text-center"></i> Diseñador de Posts</div>
       <div data-action="vista" data-arg="cola" id="nav-cola" class="nav-item px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-3"><i class="fa-regular fa-paper-plane w-5 text-center"></i> Cola de Envíos</div>
@@ -427,23 +517,26 @@
 
   <!-- CONTENIDO -->
   <main class="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-gray-50">
-    <header class="bg-white px-6 py-4 border-b text-sm text-gray-500 shrink-0 flex items-center justify-between">
-      <div>Workspace <i class="fa-solid fa-chevron-right text-[10px] mx-2"></i> <span id="header-title" class="font-semibold text-gray-800">Gestión de Inventario</span></div>
-      <button type="button" data-action="tour" class="inline-flex items-center gap-2 text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-3 py-1.5 rounded-full transition-colors"><i class="fa-regular fa-circle-question"></i> Guía</button>
+    <header class="bg-white px-3 sm:px-6 py-3 sm:py-4 border-b text-sm text-gray-500 shrink-0 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2 min-w-0">
+        <button type="button" id="btn-menu" data-action="menu" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false" class="w-10 h-10 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 shrink-0"><i class="fa-solid fa-bars"></i></button>
+        <div class="truncate"><span class="hidden sm:inline">Workspace <i class="fa-solid fa-chevron-right text-[10px] mx-2"></i></span><span id="header-title" class="font-semibold text-gray-800">Gestión de Inventario</span></div>
+      </div>
+      <button type="button" data-action="tour" class="shrink-0 inline-flex items-center gap-2 text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-3 py-1.5 rounded-full transition-colors"><i class="fa-regular fa-circle-question"></i> Guía</button>
     </header>
 
     <!-- VISTA 1: INVENTARIO -->
     <section id="vista-productos" class="w-full h-full flex flex-col overflow-hidden">
-      <div class="p-6 flex justify-between items-center shrink-0">
-        <div class="relative w-64">
+      <div class="p-4 sm:p-6 flex flex-wrap justify-between items-center gap-3 shrink-0">
+        <div class="relative w-full sm:w-64">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
           <input type="text" id="buscador-productos" placeholder="Buscar producto..." class="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-md text-sm focus:ring-blue-500 shadow-sm">
         </div>
-        <button type="button" data-action="nuevo-producto" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors"><i class="fa-solid fa-plus mr-1"></i> Nuevo Producto</button>
+        <button type="button" data-action="nuevo-producto" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors"><i class="fa-solid fa-plus mr-1"></i> Nuevo Producto</button>
       </div>
-      <div class="px-6 pb-6 flex-1 overflow-auto">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table class="min-w-full divide-y divide-gray-100">
+      <div class="px-3 sm:px-6 pb-6 flex-1 overflow-auto">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <table class="tbl-resp min-w-full divide-y divide-gray-100">
             <thead class="bg-gray-50/50">
               <tr>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">SKU</th>
@@ -460,49 +553,48 @@
     </section>
 
     <!-- VISTA 2: DISEÑADOR DE POSTS -->
-    <section id="vista-manager" class="w-full h-full hidden flex-col">
-      <div class="p-4 bg-white border-b flex items-center gap-4 shrink-0 shadow-sm">
+    <section id="vista-manager" class="w-full h-full min-h-0 hidden flex-col overflow-hidden">
+      <div class="p-3 sm:p-4 bg-white border-b flex flex-wrap items-center gap-2 sm:gap-4 shrink-0 shadow-sm">
         <span class="font-semibold text-gray-800 text-sm">Producto:</span>
-        <div id="combo-productos" class="relative w-80">
+        <div id="combo-productos" class="relative w-full sm:w-80">
           <input type="text" id="input-producto" role="combobox" aria-expanded="false" aria-controls="combo-productos-lista" aria-autocomplete="list" autocomplete="off" placeholder="Tipeá para buscar SKU o Nombre..." class="w-full pl-3 pr-16 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:ring-blue-500 focus:bg-white shadow-sm">
           <button type="button" id="combo-productos-limpiar" title="Quitar selección" aria-label="Quitar selección" class="hidden absolute right-8 top-2 p-1 text-gray-300 hover:text-gray-500 text-xs"><i class="fa-solid fa-xmark"></i></button>
           <button type="button" id="combo-productos-toggle" tabindex="-1" title="Ver todos los artículos" aria-label="Ver todos los artículos" class="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-chevron-down text-xs"></i></button>
-          <div id="combo-productos-lista" role="listbox" class="hidden absolute z-40 left-0 right-0 mt-1 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-lg py-1"></div>
+          <div id="combo-productos-lista" role="listbox" class="hidden absolute z-40 left-0 right-0 mt-1 max-h-52 sm:max-h-72 lg:max-h-[32vh] overflow-y-auto bg-white border border-gray-200 rounded-md shadow-lg py-1"></div>
         </div>
       </div>
 
-      <div class="flex-1 flex overflow-hidden">
-        <!-- Galería -->
-        <div class="w-1/2 bg-white flex flex-col h-full border-r">
+      <div class="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">        <!-- Galería (en pantallas chicas va arriba y la zona de edición abajo) -->
+        <div class="w-full lg:w-1/2 bg-white flex flex-col lg:h-full border-b lg:border-b-0 lg:border-r shrink-0 lg:shrink">
           <div class="flex border-b px-4 mt-2 gap-6 overflow-x-auto no-scrollbar" id="tabs-container"></div>
-          <div class="p-6 overflow-y-auto flex-1">
-            <div id="library-grid" class="grid grid-cols-3 xl:grid-cols-4 gap-4"></div>
+          <div class="p-3 sm:p-6 overflow-y-auto flex-1 max-h-[45vh] lg:max-h-none">
+            <div id="library-grid" class="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"></div>
           </div>
         </div>
 
         <!-- Edición -->
-        <div class="w-1/2 bg-gray-50 flex flex-col h-full">
-          <div class="p-6 flex-1 flex flex-col min-h-0">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
-              <!-- relative + z-30: el cuadro informativo queda por encima de la zona de edición -->
-              <div class="bg-white border-b px-5 py-3 flex justify-between items-center shrink-0 relative z-30">
-                <div class="flex items-center gap-3">
+        <div class="w-full lg:w-1/2 bg-gray-50 flex flex-col lg:h-full shrink-0 lg:shrink">
+          <div class="p-3 sm:p-6 flex-1 flex flex-col min-h-0">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col lg:flex-1 lg:min-h-0">              <!-- relative + z-30: el cuadro informativo queda por encima de la zona de edición -->
+              <div class="bg-white border-b px-4 sm:px-5 py-3 flex flex-wrap justify-between items-center gap-2 shrink-0 relative z-30">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                   <h3 class="font-bold text-gray-800 text-sm">Arrastra tus medios aquí</h3>
                   <div class="flex items-center gap-1.5 ml-2">
                     <button type="button" id="btn-automatizar" data-action="automatizar" class="btn-magia text-white text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400"><i class="fa-solid fa-wand-magic-sparkles"></i> <span id="btn-automatizar-txt">Automatizar</span></button>
-                    <div class="relative group cursor-help ml-1">
+                    <div class="relative tip-grupo cursor-help ml-1">
                       <i class="fa-solid fa-circle-info text-gray-400 hover:text-violet-500 text-sm transition-colors" tabindex="0" aria-describedby="tip-automatizar"></i>
-                      <div id="tip-automatizar" role="tooltip" class="absolute top-full left-0 mt-2 hidden group-hover:block group-focus-within:block w-72 bg-gray-900 text-white text-[11px] leading-relaxed rounded-lg p-3 z-50 shadow-xl text-left">Arma el carrusel por vos: elige una estructura de contenido entre 12 patrones (lookbook, catálogo, detalle, editorial y más) y mezcla los tipos de foto de este artículo. Queda en la zona de edición para que lo ajustes antes de enviarlo.</div>
+                      <div id="tip-automatizar" role="tooltip" class="tip-box fixed left-4 right-4 top-auto mt-2 w-auto sm:absolute sm:left-0 sm:right-auto sm:w-72 max-w-[calc(100vw-2rem)] bg-gray-900 text-white text-[11px] leading-relaxed rounded-lg p-3 z-50 shadow-xl text-left">Arma el carrusel por vos: elige una estructura de contenido entre 12 patrones (lookbook, catálogo, detalle, editorial y más) y mezcla los tipos de foto de este artículo. Queda en la zona de edición para que lo ajustes antes de enviarlo.</div>
                     </div>
                   </div>
                 </div>
                 <span id="counter" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold">0 items</span>
               </div>
 
-              <div id="magia-resultado" class="hidden shrink-0 mx-5 mt-3 flex items-center gap-2 text-xs bg-fuchsia-50 border border-fuchsia-100 rounded-lg px-3 py-2"></div>
+              <p class="hint-tactil shrink-0 px-4 sm:px-5 pt-2 text-[11px] text-gray-500">Tocá <b>+</b> en una foto de la galería para sumarla; la <b>×</b> la quita. Mantené presionado un medio para reordenarlo.</p>
+              <div id="magia-resultado" class="hidden shrink-0 mx-4 sm:mx-5 mt-3 flex flex-wrap items-center gap-2 text-xs bg-fuchsia-50 border border-fuchsia-100 rounded-lg px-3 py-2"></div>
 
               <!-- Los medios se acomodan en filas (con salto de línea), no en una sola tira horizontal -->
-              <div id="carousel-zone" class="p-5 flex flex-wrap content-start items-start gap-3 max-h-72 overflow-y-auto bg-gray-50/50 relative shrink-0">
+              <div id="carousel-zone" class="p-3 sm:p-5 flex flex-wrap content-start items-start gap-3 max-h-72 overflow-y-auto bg-gray-50/50 relative shrink-0">
                 <div id="empty-carousel-msg" class="w-full text-center text-gray-400 text-xs font-medium tracking-widest uppercase absolute left-0 right-0 top-1/2 -translate-y-1/2 pointer-events-none">Zona de edición</div>
               </div>
 
@@ -517,7 +609,7 @@
                 </div>
               </div>
             </div>
-            <div class="bg-white border-t p-4 flex justify-between items-center shadow-sm shrink-0">
+            <div class="sticky bottom-0 z-20 bg-white border-t p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-2 shadow-[0_-2px_8px_rgba(0,0,0,.06)] shrink-0 lg:static">
               <button type="button" data-action="limpiar" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md shadow-sm font-medium text-sm transition-colors">Limpiar Todo</button>
               <button type="button" id="btn-guardar" data-action="guardar-post" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm font-medium text-sm transition-colors flex items-center gap-2"><i class="fa-solid fa-paper-plane"></i> Enviar a la cola</button>
             </div>
@@ -529,10 +621,10 @@
 
     <!-- VISTA 3: COLA -->
     <section id="vista-cola" class="w-full h-full hidden flex-col overflow-hidden">
-      <div class="p-6 shrink-0 flex flex-wrap justify-between items-center gap-3 bg-white border-b relative z-30">
+      <div class="p-4 sm:p-6 shrink-0 flex flex-wrap justify-between items-center gap-3 bg-white border-b relative z-30">
         <h2 class="text-lg font-bold text-gray-800">Cola de publicaciones</h2>
         <div class="flex flex-wrap items-center gap-3">
-          <div class="flex items-center gap-3 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg shadow-sm">
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg shadow-sm">
             <label for="sel-orden-cola" class="text-xs font-semibold text-gray-700">Distribución (Make):</label>
             <select id="sel-orden-cola" class="text-sm bg-white border border-gray-200 rounded py-1 px-2 focus:ring-blue-500 outline-none">
               <option value="ciclico">Cíclico (Secuencial)</option>
@@ -541,7 +633,7 @@
             <button type="button" data-action="aplicar-orden" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded transition-colors shadow-sm">Aplicar</button>
             <div class="relative group cursor-help ml-1">
               <i class="fa-solid fa-circle-info text-gray-400 text-sm"></i>
-              <div class="absolute top-full right-0 mt-2 hidden group-hover:block w-64 bg-gray-800 text-white text-[11px] leading-relaxed rounded p-2.5 z-50 shadow-lg text-left">Determina el orden de procesado. <b>Cíclico</b> ordena por fecha de creación, <b>Aleatorio</b> distribuye los posts sin patrón. Aplica a todos los pendientes y a los que se creen a futuro.</div>
+              <div class="absolute top-full right-0 mt-2 hidden group-hover:block w-64 max-w-[calc(100vw-2rem)] bg-gray-800 text-white text-[11px] leading-relaxed rounded p-2.5 z-50 shadow-lg text-left">Determina el orden de procesado. <b>Cíclico</b> ordena por fecha de creación, <b>Aleatorio</b> distribuye los posts sin patrón. Aplica a todos los pendientes y a los que se creen a futuro.</div>
             </div>
           </div>
 
@@ -554,14 +646,14 @@
             </label>
             <div class="relative group cursor-help ml-1">
               <i class="fa-solid fa-circle-info text-gray-400 text-sm" tabindex="0" aria-describedby="tip-iterativo"></i>
-              <div id="tip-iterativo" role="tooltip" class="absolute top-full right-0 mt-2 hidden group-hover:block group-focus-within:block w-72 bg-gray-800 text-white text-[11px] leading-relaxed rounded p-2.5 z-50 shadow-lg text-left">Cuando se publican <b>todas</b> las publicaciones de la cola, un proceso automático (Make) las vuelve a poner en <b>Pendiente</b> y el ciclo arranca de nuevo, sin fin. En cada vuelta se vacían los pies de foto y la IA redacta textos nuevos. Desactivalo si querés que cada publicación salga una sola vez.</div>
+              <div id="tip-iterativo" role="tooltip" class="absolute top-full right-0 mt-2 hidden group-hover:block group-focus-within:block w-72 max-w-[calc(100vw-2rem)] bg-gray-800 text-white text-[11px] leading-relaxed rounded p-2.5 z-50 shadow-lg text-left">Cuando se publican <b>todas</b> las publicaciones de la cola, un proceso automático (Make) las vuelve a poner en <b>Pendiente</b> y el ciclo arranca de nuevo, sin fin. En cada vuelta se vacían los pies de foto y la IA redacta textos nuevos. Desactivalo si querés que cada publicación salga una sola vez.</div>
             </div>
           </div>
         </div>
       </div>
-      <div class="px-6 pb-6 flex-1 overflow-auto mt-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table class="min-w-full divide-y divide-gray-100">
+      <div class="px-3 sm:px-6 pb-6 flex-1 overflow-auto mt-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <table class="tbl-resp min-w-full divide-y divide-gray-100">
             <thead class="bg-gray-50/50">
               <tr>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase w-32">SKU</th>
@@ -581,7 +673,7 @@
 
     <!-- VISTA 4: CONFIGURACIÓN -->
     <section id="vista-config" class="w-full h-full hidden flex-col overflow-auto">
-      <div class="p-6 md:p-8 max-w-4xl w-full">
+      <div class="p-4 sm:p-6 md:p-8 max-w-4xl w-full">
         <div id="cfg-tabs" role="tablist" class="flex flex-wrap gap-2 mb-6">
           <button type="button" role="tab" id="cfg-tab-personal" data-action="cfg-tab" data-arg="personal" class="cfg-tab"><i class="fa-regular fa-user"></i> Información personal</button>
           <button type="button" role="tab" id="cfg-tab-contacto" data-action="cfg-tab" data-arg="contacto" class="cfg-tab"><i class="fa-regular fa-comments"></i> Contacto</button>
@@ -604,6 +696,36 @@
               <div><label for="pf-nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre del negocio</label><input type="text" id="pf-nombre" maxlength="100" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm"></div>
               <div><label for="pf-telefono" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label><input type="tel" id="pf-telefono" maxlength="30" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm"></div>
               <div class="pt-2"><button type="button" data-action="guardar-perfil" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md shadow-sm text-sm font-medium">Guardar cambios</button></div>
+            </div>
+
+            <div class="border-t mt-6 pt-6">
+              <h4 class="text-base font-bold text-gray-800">Cambiar contraseña</h4>
+              <p class="text-xs text-gray-500 mt-0.5 mb-4">Mínimo 10 caracteres. Usá una que no uses en otros sitios.</p>
+              <form id="form-cambiar-password" class="space-y-4 max-w-md" novalidate>
+                <div>
+                  <label for="pw-actual" class="block text-sm font-medium text-gray-700 mb-1">Contraseña actual</label>
+                  <div class="relative">
+                    <input type="password" id="pw-actual" autocomplete="current-password" maxlength="100" class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm">
+                    <button type="button" data-toggle-pass="pw-actual" aria-label="Mostrar contraseña" aria-pressed="false" class="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-blue-600"><i class="fa-regular fa-eye"></i></button>
+                  </div>
+                </div>
+                <div>
+                  <label for="pw-nueva" class="block text-sm font-medium text-gray-700 mb-1">Contraseña nueva</label>
+                  <div class="relative">
+                    <input type="password" id="pw-nueva" autocomplete="new-password" maxlength="100" class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm">
+                    <button type="button" data-toggle-pass="pw-nueva" aria-label="Mostrar contraseña" aria-pressed="false" class="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-blue-600"><i class="fa-regular fa-eye"></i></button>
+                  </div>
+                </div>
+                <div>
+                  <label for="pw-nueva2" class="block text-sm font-medium text-gray-700 mb-1">Repetir contraseña nueva</label>
+                  <div class="relative">
+                    <input type="password" id="pw-nueva2" autocomplete="new-password" maxlength="100" class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-md focus:ring-blue-500 text-sm">
+                    <button type="button" data-toggle-pass="pw-nueva2" aria-label="Mostrar contraseña" aria-pressed="false" class="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-blue-600"><i class="fa-regular fa-eye"></i></button>
+                  </div>
+                </div>
+                <p id="pw-error" role="alert" class="text-xs text-red-600 hidden"></p>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md shadow-sm text-sm font-medium">Cambiar contraseña</button>
+              </form>
             </div>
           </div>
         </div>
@@ -667,8 +789,8 @@
   </div><!-- fin #app-container -->
 
   <!-- MODAL: NUEVO PRODUCTO -->
-  <div id="modal-nuevo-producto" class="fixed inset-0 bg-gray-900/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+  <div id="modal-nuevo-producto" class="fixed inset-0 bg-gray-900/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm p-2 sm:p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden">
       <div class="px-6 py-4 border-b flex justify-between items-center bg-white shrink-0">
         <h3 class="text-lg font-bold text-gray-800">Crear Nuevo Producto</h3>
         <button type="button" data-action="cerrar-nuevo-producto" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
@@ -687,9 +809,9 @@
             <div><label for="np-stock" class="block text-sm font-semibold text-gray-700 mb-1">Stock</label><input type="number" id="np-stock" value="0" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
           </div>
         </div>
-        <div class="w-full md:w-2/3 p-6 flex flex-col">
-          <div class="flex justify-between items-center mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
-            <div class="flex items-center gap-3"><span class="text-sm font-semibold text-blue-900">1. Define el tipo de medio:</span><select id="np-select-cat" class="border border-blue-200 rounded px-3 py-1.5 text-sm bg-white min-w-[150px]"><option value="">Seleccionar...</option></select></div>
+        <div class="w-full md:w-2/3 p-4 sm:p-6 flex flex-col">
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3"><span class="text-sm font-semibold text-blue-900">1. Define el tipo de medio:</span><select id="np-select-cat" class="border border-blue-200 rounded px-3 py-1.5 text-sm bg-white min-w-[150px]"><option value="">Seleccionar...</option></select></div>
             <button type="button" data-action="widget-nuevo" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> 2. Subir Archivos</button>
           </div>
           <div class="flex-1 bg-white border border-dashed border-gray-300 rounded-lg p-4 overflow-y-auto">
@@ -705,17 +827,17 @@
   </div>
 
   <!-- MODAL: GALERÍA -->
-  <div id="modal-galeria" class="fixed inset-0 bg-gray-900/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl h-[80vh] flex flex-col overflow-hidden">
+  <div id="modal-galeria" class="fixed inset-0 bg-gray-900/60 z-[60] hidden flex justify-center items-center backdrop-blur-sm p-2 sm:p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[90vh] sm:h-[80vh] flex flex-col overflow-hidden">
       <div class="px-6 py-4 border-b flex justify-between items-center bg-white"><h3 class="text-lg font-bold text-gray-800" id="modal-titulo">Galería</h3><button type="button" data-action="cerrar-galeria" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button></div>
-      <div class="p-4 bg-blue-50 flex gap-4 border-b shrink-0 items-center justify-between">
-        <div class="flex items-center gap-3">
+      <div class="p-3 sm:p-4 bg-blue-50 flex flex-wrap gap-3 sm:gap-4 border-b shrink-0 items-center justify-between">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
           <span class="text-sm font-semibold text-blue-900">Define el tipo antes de subir:</span>
-          <select id="modal-select-cat" class="border border-blue-200 rounded px-3 py-1.5 text-sm w-48 bg-white focus:ring-blue-500"><option value="">Seleccionar...</option></select>
+          <select id="modal-select-cat" class="border border-blue-200 rounded px-3 py-1.5 text-sm w-full sm:w-48 bg-white focus:ring-blue-500"><option value="">Seleccionar...</option></select>
         </div>
         <button type="button" data-action="widget-galeria" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Subir Archivos</button>
       </div>
-      <div class="p-6 flex-1 overflow-y-auto bg-white"><div id="modal-grid-fotos" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-4"></div></div>
+      <div class="p-3 sm:p-6 flex-1 overflow-y-auto bg-white"><div id="modal-grid-fotos" class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-3 sm:gap-4"></div></div>
     </div>
   </div>
 
@@ -764,10 +886,10 @@
   </div>
 
   <!-- MODAL: EDITAR PRODUCTO -->
-  <div id="modal-editar" class="fixed inset-0 bg-gray-900/60 z-[70] hidden flex justify-center items-center backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-xl w-96 flex flex-col overflow-hidden">
+  <div id="modal-editar" class="fixed inset-0 bg-gray-900/60 z-[70] hidden flex justify-center items-center backdrop-blur-sm p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm max-h-[92vh] flex flex-col overflow-hidden">
       <div class="px-6 py-4 border-b bg-white flex justify-between items-center"><h3 class="font-bold text-gray-800">Editar Producto</h3><button type="button" data-action="cerrar-editar" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button></div>
-      <div class="p-6 space-y-4">
+      <div class="p-6 space-y-4 overflow-y-auto">
         <input type="hidden" id="ed-sku">
         <div><label for="ed-nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" id="ed-nombre" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 text-sm"></div>
         <div>
@@ -966,7 +1088,7 @@
     mostrarError('registro-error', '');
 
     if (!nombre || !email || !telefono || !password) return mostrarError('registro-error', 'Todos los campos son obligatorios.');
-    if (password.length < 6) return mostrarError('registro-error', 'La contraseña debe tener al menos 6 caracteres.');
+    if (password.length < 10) return mostrarError('registro-error', 'La contraseña debe tener al menos 10 caracteres.');
     if (password !== password2) return mostrarError('registro-error', 'Las contraseñas no coinciden.');
     if (!servidorDisponible()) return mostrarError('registro-error', 'No hay conexión con el servidor. Abrí la app desde su URL de Apps Script.');
 
@@ -1075,6 +1197,10 @@
   cargarConfigGlobal();
   if (getToken() && servidorDisponible()) entrar(); else ocultarLoader();
 })();
+
+  var AM_VERSION = '1.1.0';
+  var vs = document.querySelectorAll('.am-version');
+  for (var i = 0; i < vs.length; i++) vs[i].textContent = AM_VERSION;
 </script>
 
 <!-- ========================================================================= -->
@@ -1165,7 +1291,23 @@
   // ------------------------------------------------------------------
   // Navegación
   // ------------------------------------------------------------------
+  // Menú lateral: en pantallas < 1024px funciona como cajón (en escritorio estas funciones no hacen nada visible)
+  var MQ_MENU = window.matchMedia ? window.matchMedia('(max-width: 1023px)') : null;
+  function menuEsCajon() { return !!(MQ_MENU && MQ_MENU.matches); }
+  function abrirMenu() {
+    $('sidebar').classList.add('abierto'); $('menu-overlay').classList.add('abierto');
+    $('btn-menu').setAttribute('aria-expanded', 'true');
+  }
+  function cerrarMenu() {
+    $('sidebar').classList.remove('abierto'); $('menu-overlay').classList.remove('abierto');
+    $('btn-menu').setAttribute('aria-expanded', 'false');
+  }
+  function alternarMenu() { if ($('sidebar').classList.contains('abierto')) cerrarMenu(); else abrirMenu(); }
+  window.addEventListener('resize', function () { if (!menuEsCajon()) cerrarMenu(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarMenu(); });
+
   function cambiarVista(vista) {
+    cerrarMenu();
     var items = document.querySelectorAll('.nav-item');
     for (var i = 0; i < items.length; i++) items[i].classList.remove('active');
     $('nav-' + vista).classList.add('active');
@@ -1189,7 +1331,7 @@
   // ------------------------------------------------------------------
   // Inventario
   // ------------------------------------------------------------------
-  function celda(cls, hijos) { return el('td', { cls: 'px-6 py-4 whitespace-nowrap ' + cls }, hijos); }
+  function celda(cls, hijos, etiqueta) { return el('td', { cls: 'px-6 py-4 whitespace-nowrap ' + cls, 'data-label': etiqueta }, hijos); }
   function botonAccion(cls, titulo, icon, accion, arg) {
     return el('button', { type: 'button', cls: cls, title: titulo, 'data-action': accion, 'data-arg': arg }, [icono(icon)]);
   }
@@ -1199,15 +1341,15 @@
     state.productos.forEach(function (p) {
       var color = p.estado === 'Activo' ? 'bg-green-100 text-green-700' : (p.estado === 'Inactivo' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700');
       tbody.appendChild(el('tr', null, [
-        celda('text-sm font-medium text-gray-900', [String(p.sku)]),
-        celda('text-sm text-gray-600', [String(p.nombre)]),
-        celda('text-sm text-gray-600', [el('span', { cls: 'px-2.5 py-1 rounded-md text-xs font-semibold ' + color, text: p.estado })]),
-        celda('text-sm text-gray-600 font-semibold', [String(p.stock)]),
+        celda('text-sm font-medium text-gray-900', [String(p.sku)], 'SKU'),
+        celda('text-sm text-gray-600', [String(p.nombre)], 'Nombre'),
+        celda('text-sm text-gray-600', [el('span', { cls: 'px-2.5 py-1 rounded-md text-xs font-semibold ' + color, text: p.estado })], 'Estado'),
+        celda('text-sm text-gray-600 font-semibold', [String(p.stock)], 'Stock'),
         celda('text-right text-sm', [
           botonAccion('bg-blue-50 text-blue-600 p-2 rounded hover:bg-blue-100 mr-2', 'Galería', 'fa-regular fa-images', 'galeria', p.sku),
           botonAccion('bg-orange-50 text-orange-500 p-2 rounded hover:bg-orange-100 mr-2', 'Editar', 'fa-solid fa-pen', 'editar', p.sku),
           botonAccion('bg-red-50 text-red-500 p-2 rounded hover:bg-red-100', 'Eliminar', 'fa-solid fa-trash', 'del-producto', p.sku)
-        ])
+        ], 'Acciones')
       ]));
     });
   }
@@ -1251,7 +1393,7 @@
       var hijos = [
         el('img', { src: obtenerThumbnail(obj.url), cls: 'w-full h-full object-cover rounded' }),
         el('span', { cls: 'absolute bottom-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none', text: obj.categoria }),
-        el('button', { type: 'button', cls: 'absolute top-1 right-1 bg-red-600/90 text-white rounded p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity z-20', 'data-action': 'quitar-foto-temp', 'data-arg': String(idx) }, [icono('fa-solid fa-trash')])
+        el('button', { type: 'button', cls: 'btn-del-temp absolute top-1 right-1 bg-red-600/90 text-white rounded p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity z-20', 'data-action': 'quitar-foto-temp', 'data-arg': String(idx) }, [icono('fa-solid fa-trash')])
       ];
       if (esVideo(obj.url)) hijos.splice(1, 0, botonPlay(obj.url, 'text-3xl'));
       grid.appendChild(el('div', { cls: 'np-foto-temp bg-white rounded border p-1 aspect-square relative group overflow-hidden' }, hijos));
@@ -1323,7 +1465,7 @@
       var hijos = [
         el('img', { src: obtenerThumbnail(foto.url), cls: 'w-full h-full object-cover rounded pointer-events-none' }),
         el('span', { cls: 'absolute top-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none', text: foto.categoria }),
-        el('button', { type: 'button', cls: 'absolute inset-0 bg-red-600/90 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded z-20', 'data-action': 'del-medio', 'data-arg': foto.id }, [icono('fa-solid fa-trash text-xl')])
+        el('button', { type: 'button', cls: 'btn-del-medio absolute inset-0 bg-red-600/90 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded z-20', 'data-action': 'del-medio', 'data-arg': foto.id }, [icono('fa-solid fa-trash text-xl')])
       ];
       if (esVideo(foto.url)) hijos.splice(1, 0, botonPlay(foto.url, 'text-3xl'));
       grid.appendChild(el('div', { cls: 'bg-white rounded border shadow-sm p-1 aspect-square relative group overflow-hidden' }, hijos));
@@ -1344,7 +1486,9 @@
     if (!state.config.CLOUDINARY_CLOUD_NAME || !state.config.CLOUDINARY_UPLOAD_PRESET) return;
     cloudWidget = cloudinary.createUploadWidget({
       cloudName: state.config.CLOUDINARY_CLOUD_NAME, uploadPreset: state.config.CLOUDINARY_UPLOAD_PRESET,
-      sources: ['local', 'url'], multiple: true, resourceType: 'auto'
+      sources: ['local', 'url'], multiple: true, resourceType: 'auto',
+      clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'mp4', 'mov'],
+      maxImageFileSize: 15000000, maxVideoFileSize: 100000000
     }, function (error, result) {
       if (error || !result || result.event !== 'success') return;
       var url = result.info.secure_url;
@@ -1355,6 +1499,22 @@
           state.medios.push(nuevo); renderizarFotosModal();
         }, function (err) { manejarError(err, 'Error al guardar el archivo'); });
       }
+    });
+    
+    // Tooltips en táctil: tocar el ícono abre/cierra; tocar afuera cierra.
+    // Se usa pointerdown para cerrar porque iOS no dispara "click" al tocar áreas no interactivas.
+    document.addEventListener('pointerdown', function (e) {
+      var grupo = e.target && e.target.closest ? e.target.closest('.tip-grupo') : null;
+      var abiertos = document.querySelectorAll('.tip-box.abierto');
+      for (var i = 0; i < abiertos.length; i++) {
+        if (!grupo || !grupo.contains(abiertos[i])) abiertos[i].classList.remove('abierto');
+      }
+    });
+    document.addEventListener('click', function (e) {
+      var grupo = e.target && e.target.closest ? e.target.closest('.tip-grupo') : null;
+      if (!grupo) return;
+      var box = grupo.querySelector('.tip-box');
+      if (box) box.classList.toggle('abierto');
     });
   }
 
@@ -1499,6 +1659,9 @@
   function tarjetaMedio(url) {
     var hijos = [el('img', { src: obtenerThumbnail(url), cls: 'max-w-full max-h-full object-cover pointer-events-none rounded' })];
     if (esVideo(url)) hijos.push(botonPlay(url, 'text-2xl'));
+    // Botones para pantallas táctiles (el CSS los muestra según dónde esté la tarjeta: galería o zona de edición)
+    hijos.push(el('button', { type: 'button', cls: 'btn-agregar-medio', 'aria-label': 'Agregar a la zona de edición', title: 'Agregar' }, [icono('fa-solid fa-plus')]));
+    hijos.push(el('button', { type: 'button', cls: 'btn-quitar-medio', 'aria-label': 'Quitar de la zona de edición', title: 'Quitar' }, [icono('fa-solid fa-xmark')]));
     return el('div', { cls: 'img-card drag-card bg-white rounded-lg border border-gray-200 p-1 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 flex items-center justify-center relative shadow-sm hover:shadow-md overflow-hidden', 'data-url': url }, hijos);
   }
 
@@ -1508,23 +1671,54 @@
     var fotos = state.medios.filter(function (m) { return m.sku === state.productoActivoManager && m.categoria === state.categoriaActivaManager; });
     if (fotos.length === 0) return mensajeVacio(grid, 'No hay archivos en esta pestaña.');
     fotos.forEach(function (foto) { grid.appendChild(tarjetaMedio(foto.url)); });
+    marcarEnZona();
   }
 
   function initSortable() {
     if (typeof Sortable === 'undefined' || sortableLibrary) return;
+    // delay + delayOnTouchOnly: en pantallas táctiles hay que mantener presionado para arrastrar (así se puede deslizar la página)
     sortableLibrary = new Sortable($('library-grid'), {
       group: { name: 'shared', pull: 'clone', put: false }, animation: 150, sort: false,
-      filter: '[data-play]', preventOnFilter: false
+      filter: '[data-play], .btn-agregar-medio', preventOnFilter: false,
+      delay: 150, delayOnTouchOnly: true, touchStartThreshold: 6
     });
     sortableCarousel = new Sortable($('carousel-zone'), {
       group: { name: 'shared', pull: false, put: true }, animation: 150, draggable: '.img-card',
+      filter: '.btn-quitar-medio', preventOnFilter: false,
+      delay: 150, delayOnTouchOnly: true, touchStartThreshold: 6,
       onAdd: actualizarContador, onUpdate: actualizarContador
     });
   }
 
+  // Alternativa táctil al arrastrar: "+" agrega la foto de la galería y "×" la quita de la zona de edición.
+  function agregarMedioAlCarrusel(url) {
+    var zona = $('carousel-zone');
+    var n = zona.querySelectorAll('.img-card').length;
+    if (n >= 10) return toast('Instagram permite máximo 10 archivos por carrusel.', 'error');
+    zona.appendChild(tarjetaMedio(url));
+    actualizarContador();   // también marca en la galería las fotos que ya están en la zona
+  }
+  function marcarEnZona() {
+    var usados = {};
+    var enZona = $('carousel-zone').querySelectorAll('.img-card');
+    for (var i = 0; i < enZona.length; i++) usados[enZona[i].getAttribute('data-url')] = true;
+    var lib = $('library-grid').querySelectorAll('.img-card');
+    for (var j = 0; j < lib.length; j++) lib[j].classList.toggle('en-zona', !!usados[lib[j].getAttribute('data-url')]);
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('.btn-agregar-medio, .btn-quitar-medio') : null;
+    if (!b) return;
+    e.stopPropagation();
+    var card = b.closest('.img-card');
+    if (!card) return;
+    if (b.classList.contains('btn-quitar-medio')) { card.parentNode.removeChild(card); actualizarContador(); }
+    else agregarMedioAlCarrusel(card.getAttribute('data-url'));
+  });
+
   function actualizarContador() {
     var n = $('carousel-zone').querySelectorAll('.img-card').length;
     $('counter').textContent = n + ' items';
+    marcarEnZona();
     $('empty-carousel-msg').style.display = n > 0 ? 'none' : 'block';
     if (n === 0) { var res = $('magia-resultado'); if (res) res.classList.add('hidden'); }
   }
@@ -1687,16 +1881,16 @@
       var fecha = c.fechaPublicacion ? el('span', { text: c.fechaPublicacion }) : el('span', { cls: 'text-gray-300', text: '—' });
 
       tbody.appendChild(el('tr', null, [
-        celda('text-sm font-medium text-gray-700', [c.sku]),
-        celda('text-sm text-gray-600 font-medium', [prod ? prod.nombre : '-']),
-        el('td', { cls: 'px-6 py-4 text-sm' }, [thumbs]),
-        el('td', { cls: 'px-6 py-4 text-sm text-gray-600' }, [pie]),
-        celda('text-sm', [el('span', { cls: 'px-2.5 py-1 rounded-md text-xs font-semibold ' + estadoCls, text: c.estado || '-' })]),
-        celda('text-sm text-gray-600', [fecha]),
+        celda('text-sm font-medium text-gray-700', [c.sku], 'SKU'),
+        celda('text-sm text-gray-600 font-medium', [prod ? prod.nombre : '-'], 'Nombre'),
+        el('td', { cls: 'px-6 py-4 text-sm td-bloque', 'data-label': 'Medios' }, [thumbs]),
+        el('td', { cls: 'px-6 py-4 text-sm text-gray-600 td-bloque', 'data-label': 'Pie de foto' }, [pie]),
+        celda('text-sm', [el('span', { cls: 'px-2.5 py-1 rounded-md text-xs font-semibold ' + estadoCls, text: c.estado || '-' })], 'Estado'),
+        celda('text-sm text-gray-600', [fecha], 'Publicación'),
         celda('text-right text-sm', [
           botonAccion('bg-orange-50 text-orange-500 p-2 rounded-md hover:bg-orange-100 mr-2 transition-colors', 'Editar publicación', 'fa-solid fa-pen', 'editar-post', c.id),
           botonAccion('bg-red-50 text-red-500 p-2 rounded-md hover:bg-red-100 transition-colors opacity-80 hover:opacity-100', 'Eliminar publicación', 'fa-solid fa-trash', 'del-post', c.id)
-        ])
+        ], 'Acciones')
       ]));
     });
   }
@@ -1746,7 +1940,7 @@
     actualizarContadorEditarPost();
 
     if (!sortableEditarPost && typeof Sortable !== 'undefined') {
-      sortableEditarPost = new Sortable(cont, { animation: 150, draggable: '.ep-card', filter: '.ep-quitar', preventOnFilter: false });
+      sortableEditarPost = new Sortable(cont, { animation: 150, draggable: '.ep-card', filter: '.ep-quitar', preventOnFilter: false, delay: 150, delayOnTouchOnly: true, touchStartThreshold: 6 });
     }
     $('modal-editar-post').classList.remove('hidden');
   }
@@ -1841,6 +2035,27 @@
       function (err) { manejarError(err, 'No se pudieron cargar tus datos'); });
   }
 
+  function cambiarPasswordFront() {
+    var actual = $('pw-actual').value, nueva = $('pw-nueva').value, nueva2 = $('pw-nueva2').value;
+    var caja = $('pw-error');
+    function fallar(msg) { caja.textContent = msg; caja.classList.remove('hidden'); }
+    caja.classList.add('hidden'); caja.textContent = '';
+    if (!actual || !nueva) return fallar('Completá la contraseña actual y la nueva.');
+    if (nueva.length < 10) return fallar('La contraseña nueva debe tener al menos 10 caracteres.');
+    if (nueva !== nueva2) return fallar('Las contraseñas nuevas no coinciden.');
+    if (nueva === actual) return fallar('La contraseña nueva debe ser distinta de la actual.');
+    loader(true);
+    rpc('cambiarPassword', [actual, nueva], function () {
+      loader(false);
+      ['pw-actual', 'pw-nueva', 'pw-nueva2'].forEach(function (id) { $(id).value = ''; });
+      toast('Contraseña actualizada');
+    }, function (err) {
+      loader(false);
+      if (err && err.message && err.message.indexOf('Sesión') !== -1) return manejarError(err);
+      fallar((err && err.message) || 'No se pudo cambiar la contraseña.');
+    });
+  }
+
   function guardarPerfil() {
     var nombre = $('pf-nombre').value.trim(), tel = $('pf-telefono').value.trim();
     if (!nombre || !tel) return toast('Completá el nombre del negocio y el teléfono.', 'error');
@@ -1904,7 +2119,7 @@
     { icono: 'fa-solid fa-key', color: 'text-violet-600 bg-violet-50', nombre: 'Tu sesión en Auto Manager',
       hace: 'Te mantiene identificado mientras usás la app.',
       comparte: 'Si tildás "Mantener la sesión", se guarda en este navegador un código de sesión temporal. Si tildás "Recordar usuario", se guarda solo tu email.',
-      noComparte: 'Tu contraseña no se guarda en el navegador y en nuestros registros se almacena cifrada (hash con sal), nunca en texto plano.',
+      noComparte: 'Tu contraseña no se guarda en el navegador y en nuestros registros se almacena cifrada (hash con sal), nunca en texto plano. Podés cambiarla cuando quieras en Configuración > Información personal.',
       revocar: 'Al tocar "Cerrar sesión" el código se invalida en el servidor y se borran los datos de la pantalla.' },
     { icono: 'fa-solid fa-table-cells', color: 'text-emerald-600 bg-emerald-50', nombre: 'Planilla de Google (tus datos)',
       hace: 'Guarda tus artículos, la lista de archivos, la cola de publicaciones y tu configuración en una planilla exclusiva de tu negocio.',
@@ -2061,11 +2276,13 @@
     var n = tourCrear();
     tourIdx = i;
     if (!$('vista-' + paso.vista).classList.contains('flex')) cambiarVista(paso.vista);
+    var esNav = /^#nav-/.test(paso.sel);
+    if (menuEsCajon()) { if (esNav) abrirMenu(); else cerrarMenu(); }   // en celular el menú está oculto salvo en los pasos que lo señalan
     if (paso.tab) cambiarTabConfig(paso.tab);
     n.fondo.classList.remove('hidden');
     var destino = document.querySelector(paso.sel);
     if (destino && destino.scrollIntoView) destino.scrollIntoView({ block: 'center', inline: 'nearest' });
-    setTimeout(function () { if (tourIdx === i) tourPosicionar(paso, destino, i); }, inmediato ? 0 : 60);
+    setTimeout(function () { if (tourIdx === i) tourPosicionar(paso, destino, i); }, inmediato ? 0 : ((esNav && menuEsCajon()) ? 300 : 60));
   }
 
   function iniciarTour() { tourMostrar(0); }
@@ -2086,6 +2303,9 @@
   // ------------------------------------------------------------------
   function reiniciar() {
     tourSalir();
+    cerrarMenu();
+    ['pw-actual', 'pw-nueva', 'pw-nueva2'].forEach(function (id) { var c = $(id); if (c) c.value = ''; });
+    var pe = $('pw-error'); if (pe) { pe.classList.add('hidden'); pe.textContent = ''; }
     ['modal-nuevo-producto', 'modal-galeria', 'modal-editar', 'modal-editar-post'].forEach(function (id) { var m = $(id); if (m) m.classList.add('hidden'); });
     cerrarVideo();
     state.productos = []; state.categorias = []; state.medios = []; state.cola = []; state.config = {}; state.nombreNegocio = '';
@@ -2124,6 +2344,8 @@
   // ------------------------------------------------------------------
   var ACCIONES = {
     'vista': cambiarVista,
+    'menu': alternarMenu,
+    'cerrar-menu': cerrarMenu,
     'cerrar-sesion': function () { window.Auth.cerrarSesion(); },
     'cerrar-video': cerrarVideo,
     'nuevo-producto': abrirModalNuevoProducto,
@@ -2175,6 +2397,7 @@
   $('buscador-productos').addEventListener('keyup', function () { filtrarTabla('tabla-productos', this.value); });
   initComboProductos();
   $('chk-iterativo').addEventListener('change', function () { guardarIterativo(this.checked); });
+  $('form-cambiar-password').addEventListener('submit', function (e) { e.preventDefault(); cambiarPasswordFront(); });
   initEmojis();
 
   // ------------------------------------------------------------------
