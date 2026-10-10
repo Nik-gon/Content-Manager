@@ -1,0 +1,19 @@
+{
+  "name": "auto-manager-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Envoltorio Android (Capacitor) de la Web App Auto Manager",
+  "scripts": {
+    "sync": "cap sync android",
+    "build:debug": "cap sync android && cd android && ./gradlew assembleDebug",
+    "build:release": "cap sync android && cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}

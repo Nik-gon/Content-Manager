@@ -6,17 +6,17 @@
             "module": "http:MakeRequest",
             "version": 4,
             "parameters": {
-                "authenticationType": "noAuth",
-                "tlsType": ""
+                "tlsType": "",
+                "authenticationType": "noAuth"
             },
             "mapper": {
-                "url": "https://script.google.com/macros/s/AKfycbzEUrl0XgI56C_NrGnQvueZorZfY9hGb3teMXvL_VrWeRd_x2OdD79yrvQk3IbnkFDakw/exec?action=reciclarCola&idSheet=1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
+                "url": "https://script.google.com/macros/s/AKfycbwwILpa8SJ_DKCB3tyclcO7bLYtDW7imKZ_wjrMkUNA/dev?action=reciclarCola&idSheet=1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc&key=maiojwrouigj9874uhalkdjfa88878qopjsdkahf8r",
                 "method": "get",
-                "parseResponse": true,
-                "stopOnHttpError": true,
                 "timeout": "40",
-                "allowRedirects": true,
                 "shareCookies": false,
+                "parseResponse": true,
+                "allowRedirects": true,
+                "stopOnHttpError": true,
                 "requestCompressedContent": true
             },
             "metadata": {
@@ -25,22 +25,14 @@
                     "y": -86
                 },
                 "setupValidation": {
-                    "version": 1,
-                    "configuration": "1ed2348f78cb2fdd",
                     "result": {
                         "valid": true,
                         "fields": []
-                    }
+                    },
+                    "version": 1,
+                    "configuration": "36936d2a21f1d2dc"
                 },
                 "restore": {
-                    "parameters": {
-                        "authenticationType": {
-                            "label": "No authenticationUse when no credentials are required for the request."
-                        },
-                        "tlsType": {
-                            "label": "Empty"
-                        }
-                    },
                     "expect": {
                         "method": {
                             "mode": "chose",
@@ -49,29 +41,37 @@
                         "headers": {
                             "mode": "chose"
                         },
-                        "queryParameters": {
-                            "mode": "chose"
-                        },
                         "contentType": {
                             "label": "Empty"
                         },
-                        "parseResponse": {
+                        "shareCookies": {
                             "mode": "chose"
                         },
-                        "stopOnHttpError": {
+                        "parseResponse": {
                             "mode": "chose"
                         },
                         "allowRedirects": {
                             "mode": "chose"
                         },
-                        "shareCookies": {
+                        "paginationType": {
+                            "label": "Empty"
+                        },
+                        "queryParameters": {
+                            "mode": "chose"
+                        },
+                        "stopOnHttpError": {
                             "mode": "chose"
                         },
                         "requestCompressedContent": {
                             "mode": "chose"
-                        },
-                        "paginationType": {
+                        }
+                    },
+                    "parameters": {
+                        "tlsType": {
                             "label": "Empty"
+                        },
+                        "authenticationType": {
+                            "label": "No authenticationUse when no credentials are required for the request."
                         }
                     }
                 },
@@ -133,17 +133,13 @@
                     },
                     {
                         "name": "headers",
-                        "type": "array",
-                        "label": "Headers",
                         "spec": {
                             "name": "value",
-                            "label": "Header",
-                            "type": "collection",
                             "spec": [
                                 {
                                     "name": "name",
-                                    "label": "Name",
                                     "type": "text",
+                                    "label": "Name",
                                     "required": true,
                                     "validate": {
                                         "pattern": "^[-!#$%&'*+.^_`|~0-9A-Za-z]+$"
@@ -151,34 +147,38 @@
                                 },
                                 {
                                     "name": "value",
-                                    "label": "Value",
-                                    "type": "text"
+                                    "type": "text",
+                                    "label": "Value"
                                 }
-                            ]
-                        }
+                            ],
+                            "type": "collection",
+                            "label": "Header"
+                        },
+                        "type": "array",
+                        "label": "Headers"
                     },
                     {
                         "name": "queryParameters",
-                        "type": "array",
-                        "label": "Query parameters",
                         "spec": {
                             "name": "value",
-                            "label": "Parameter",
-                            "type": "collection",
                             "spec": [
                                 {
                                     "name": "name",
-                                    "label": "Name",
                                     "type": "text",
+                                    "label": "Name",
                                     "required": true
                                 },
                                 {
                                     "name": "value",
-                                    "label": "Value",
-                                    "type": "text"
+                                    "type": "text",
+                                    "label": "Value"
                                 }
-                            ]
-                        }
+                            ],
+                            "type": "collection",
+                            "label": "Parameter"
+                        },
+                        "type": "array",
+                        "label": "Query parameters"
                     },
                     {
                         "name": "contentType",
@@ -210,8 +210,8 @@
                         "type": "uinteger",
                         "label": "Timeout",
                         "validate": {
-                            "min": 1,
-                            "max": 300
+                            "max": 300,
+                            "min": 1
                         }
                     },
                     {
@@ -249,53 +249,53 @@
                 "interface": [
                     {
                         "name": "data",
-                        "label": "Data",
-                        "type": "any"
+                        "type": "any",
+                        "label": "Data"
                     },
                     {
                         "name": "statusCode",
-                        "label": "Status Code",
-                        "type": "number"
+                        "type": "number",
+                        "label": "Status Code"
                     },
                     {
                         "name": "headers",
-                        "label": "Headers",
-                        "type": "collection",
                         "spec": [
                             {
                                 "name": "content-length",
-                                "label": "Content-Length",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Content-Length"
                             },
                             {
                                 "name": "content-encoding",
-                                "label": "Content-Encoding",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Content-Encoding"
                             },
                             {
                                 "name": "content-type",
-                                "label": "Content-Type",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Content-Type"
                             },
                             {
                                 "name": "server",
-                                "label": "Server",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Server"
                             },
                             {
                                 "name": "cache-control",
-                                "label": "Cache-Control",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Cache-Control"
                             },
                             {
                                 "name": "set-cookie",
-                                "label": "Set-Cookie",
-                                "type": "array",
                                 "spec": {
                                     "type": "text"
-                                }
+                                },
+                                "type": "array",
+                                "label": "Set-Cookie"
                             }
-                        ]
+                        ],
+                        "type": "collection",
+                        "label": "Headers"
                     }
                 ]
             }

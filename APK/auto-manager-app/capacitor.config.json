@@ -1,0 +1,23 @@
+{
+  "appId": "com.automanager.app",
+  "appName": "Auto Manager",
+  "webDir": "www",
+  "server": {
+    "url": "https://script.google.com/macros/s/AKfycbxQCo3oL4KSGjtahAZche1_46TSKCJjWGW6oyDqx9wnDW02ZMWZAkQcsbVJyF80oreLdQ/exec",
+    "cleartext": false,
+    "allowNavigation": [
+      "script.google.com",
+      "*.google.com",
+      "*.googleusercontent.com",
+      "*.cloudinary.com",
+      "res.cloudinary.com",
+      "upload-widget.cloudinary.com",
+      "wa.me",
+      "api.whatsapp.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  }
+}
