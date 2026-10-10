@@ -1,8 +1,8 @@
 # Auto Manager — Documentación Técnica (para desarrolladores)
 
 **Estado:** v2 multi-tenant, en validación (ver sección 9, "qué está verificado y qué no").
-**Última actualización:** alineada con `Backend.js`, `Index.html` y el blueprint `Integration Google Sheets` vigentes (octubre 2026).
-**Stack:** Google Apps Script (backend + frontend servido como Web App) + Google Sheets (base de datos) + Cloudinary (medios) + Make.com (orquestación) + Gemini (copywriting) + Instagram Business API (publicación).
+**Última actualización:** alineada con `Backend.js`, `Index.html` y el blueprint `Integration Google Sheets` vigentes, e incluye la app Android (sección 12) — octubre 2026.
+**Stack:** Google Apps Script (backend + frontend servido como Web App) + Google Sheets (base de datos) + Cloudinary (medios) + Make.com (orquestación) + Gemini (copywriting) + Instagram Business API (publicación) + app Android (APK) como envoltorio Capacitor de la Web App (ver sección 12).
 
 ---
 
@@ -53,6 +53,7 @@ El reciclado **ya no es un escenario aparte**: está integrado como primer módu
 | Orquestación | Make.com (1 escenario por cliente) | Dispara el reciclado, consume la cola, genera el copy, publica |
 | IA de copywriting | Gemini `gemini-2.5-flash-lite` (módulo nativo `gemini-ai` en Make) | Redacta el pie de foto si está vacío |
 | Publicación | Instagram Business API (conector nativo de Make) | Feed / Reel / Carrusel |
+| App Android | Capacitor 7 (WebView) | Envoltorio del `/exec` para repartir como APK a los clientes (sección 12) |
 
 ---
 
@@ -327,6 +328,7 @@ Como corre antes del `Search Rows`, en la misma corrida en que se vacía la cola
 - "Automatizar con IA" es selección local de patrones, no IA real.
 - El límite de 10 medios por carrusel está validado en front y en backend.
 - Cada alta de un cliente sigue siendo manual (ver Guía de Implementación).
+- **APK:** es un envoltorio de la Web App, no una app nativa; fuera de Play Store muestra el aviso de Play Protect y la franja azul de Apps Script no se puede quitar (ver 12.9).
 
 ---
 
@@ -342,6 +344,7 @@ Como corre antes del `Search Rows`, en la misma corrida en que se vacía la cola
 - Que Make escriba `Fecha_Publicacion` (cambio pendiente).
 - Cambio de contraseña y migración de hash v1→v2 contra el Sheet real. *(La cuenta de prueba de la planilla `Usuarios` todavía tiene hash v1 y token en texto plano de la versión anterior: al primer login se migra el hash, y la sesión vieja deja de valer porque ahora se compara el hash del token.)*
 - Si el gestor de contraseñas del navegador ofrece guardar la clave dentro del iframe de Apps Script.
+- APK: subida de fotos desde el celular, persistencia de sesión, WhatsApp y márgenes en otros modelos (ver 12.11).
 
 ---
 
@@ -353,7 +356,9 @@ Como corre antes del `Search Rows`, en la misma corrida en que se vacía la cola
 4. Re-vincular la cuenta de Instagram comercial real (el `accountId` del blueprint de referencia puede ser de prueba).
 5. Validar en el entorno real todo lo listado como "NO verificado" en la sección 9.
 6. Resolver/confirmar el bug histórico de "Registrarme" sin respuesta (ver guía de implementación, troubleshooting): si reaparece tras una "Nueva versión" + `Ctrl+F5`, levantar el error de consola.
-7. Decidir si `Fecha_Publicacion` debe ser la fecha real de publicación (interpretación actual) o una fecha programada (requeriría selector de fecha + que Make filtre por fecha ≤ hoy).
+7. **APK:** probar en un teléfono real la subida de fotos con el widget de Cloudinary, la sesión persistente y el botón de WhatsApp (12.11); decidir si se publica en Play Store o se sigue repartiendo el APK firmado.
+8. **APK:** corregir los scripts `build:debug`/`build:release` de `package.json` para que funcionen en Windows (hoy usan `./gradlew`).
+9. Decidir si `Fecha_Publicacion` debe ser la fecha real de publicación (interpretación actual) o una fecha programada (requeriría selector de fecha + que Make filtre por fecha ≤ hoy).
 
 ---
 
@@ -374,3 +379,317 @@ Como corre antes del `Search Rows`, en la misma corrida en que se vacía la cola
 | Perfil | devolvía fecha de aprobación | devuelve `fechaRegistro` ("Cliente desde") |
 | Responsive | "no hay versión responsiva" | menú lateral desplegable bajo 1024 px |
 | Embebido | — | sin `ALLOWALL` (anti-clickjacking) |
+| App Android | — | Nueva: envoltorio Capacitor + guía completa de armado, firma, íconos e instalación (**sección 12**) |
+
+---
+
+## 12. App Android (APK)
+
+Guía completa para **reconstruir el entorno y generar el APK desde cero**, por ejemplo en otra computadora. Está escrita para **Windows + PowerShell + VS Code** (es lo que se usó). Todos los comandos se ejecutan en PowerShell.
+
+### 12.1 Qué es y cómo funciona
+
+El APK **no es una app nativa**: es un envoltorio (WebView) hecho con **Capacitor 7** que abre la URL `/exec` de la Web App de Apps Script a pantalla completa.
+
+- **No hay que regenerar el APK cuando cambia la web ni el backend.** Con hacer "Nueva versión" en Apps Script (ver Guía de Implementación, A.6) todos los clientes ven el cambio al abrir la app.
+- **Sí hay que regenerar el APK** solo si cambia algo nativo: la URL `/exec`, el nombre, el ícono, `MainActivity.java`, permisos o la versión.
+- La app no guarda datos propios: el login, la sesión (`localStorage` del WebView) y todo lo demás es la Web App.
+
+| Dato | Valor |
+|---|---|
+| Identificador del paquete (`appId`) | `com.automanager.app` |
+| Nombre visible (`appName`) | `Auto Manager` |
+| Capacitor | 7.x (`@capacitor/core`, `@capacitor/android`, `@capacitor/cli`) |
+| Android | `minSdk` 23, `compileSdk`/`targetSdk` 35 |
+| Gradle / plugin de Android | Gradle 8.11.1 (lo baja solo), Android Gradle Plugin 8.7.2 |
+| Java necesario | **JDK 21** (Capacitor 7 compila con Java 21; con 17 falla con "invalid source release: 21") |
+
+### 12.2 Estructura del proyecto
+
+```
+auto-manager-app\                  <- carpeta principal (acá se corren los comandos npm / npx)
+├─ package.json
+├─ capacitor.config.json           <- URL de la Web App y navegación permitida
+├─ assets\                         <- imágenes fuente de los íconos (ver 12.8)
+│   ├─ icon-only.png
+│   └─ icon-foreground.png
+├─ www\index.html                  <- página de relleno que exige Capacitor (no se usa: la app carga la URL)
+├─ auto-manager.keystore           <- clave de firma (NO subir a Git; hacer copia de seguridad)
+└─ android\                        <- proyecto Android generado (acá se corre gradlew)
+    ├─ gradle.properties           <- línea org.gradle.java.home (depende de cada PC)
+    ├─ local.properties            <- ruta del SDK (depende de cada PC; no versionar)
+    ├─ keystore.properties         <- datos de firma (no versionar)
+    └─ app\
+        ├─ build.gradle            <- firma, versionCode, versionName
+        └─ src\main\
+            ├─ AndroidManifest.xml
+            ├─ java\com\automanager\app\MainActivity.java   <- márgenes de pantalla
+            └─ res\mipmap-*        <- íconos generados
+```
+
+**Qué se copia a otra PC:** toda la carpeta `auto-manager-app` **menos** `node_modules`, `android\build`, `android\app\build`, `android\.gradle` y `android\local.properties` (se regeneran), **más** el keystore y sus contraseñas. Si se usa Git, el `.gitignore` del proyecto ya excluye `node_modules`, `*.keystore`, `keystore.properties`, `local.properties` y las carpetas de compilación.
+
+### 12.3 Qué instalar en una PC nueva (una sola vez)
+
+| Programa | Cómo | Verificar |
+|---|---|---|
+| **Node.js** (LTS 18 o superior) | nodejs.org | `node -v` y `npm -v` |
+| **JDK 21** (Temurin) | `winget install EclipseAdoptium.Temurin.21.JDK` | carpeta `C:\Program Files\Eclipse Adoptium\jdk-21.x.x.x-hotspot` |
+| **Android SDK** | Opción A (recomendada): instalar **Android Studio** (`winget install Google.AndroidStudio`), abrirlo una vez y completar el asistente en modo *Standard*; descarga el SDK en `C:\Users\<USUARIO>\AppData\Local\Android\Sdk`. Opción B: solo *Command line tools* (ver abajo) | existe la carpeta `...\Android\Sdk` |
+| **VS Code** | opcional, para editar | — |
+
+> ⚠️ **Java 8 viejo en el PATH:** si la PC ya tenía Java 8 (Oracle), `java -version` seguirá mostrando 1.8 aunque instales el 21, y Gradle falla con *"Dependency requires at least JVM runtime version 11. This build uses a Java 8 JVM"*. No hace falta tocar el PATH: se fuerza el JDK en `gradle.properties` (paso 12.4.5).
+
+**Paquetes del SDK necesarios:** `platform-tools`, `platforms;android-35`, `build-tools;34.0.0` (Gradle los pide solo; si las licencias están aceptadas, los instala solo en la primera compilación) y `cmdline-tools;latest` (para aceptar licencias).
+
+**Opción B — solo herramientas de línea de comandos (sin Android Studio):**
+1. Bajar *Command line tools only* (Windows) desde developer.android.com/studio.
+2. Descomprimir para que `sdkmanager.bat` quede **exactamente** en `C:\Users\<USUARIO>\AppData\Local\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat`. Si el zip deja una carpeta `cmdline-tools\cmdline-tools\bin`, mover `bin`, `lib`, etc. dentro de una carpeta nueva llamada `latest`.
+3. Instalar los paquetes:
+   ```powershell
+   $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.x.x.x-hotspot"
+   $sdk = "$env:LOCALAPPDATA\Android\Sdk"
+   & "$sdk\cmdline-tools\latest\bin\sdkmanager.bat" --sdk_root=$sdk "platform-tools" "platforms;android-35" "build-tools;34.0.0"
+   ```
+
+**Aceptar las licencias del SDK** (una vez; si no, Gradle falla con *"licences have not been accepted"*):
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.x.x.x-hotspot"
+& "$env:LOCALAPPDATA\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat" --licenses
+```
+Responder `y` a todas.
+
+### 12.4 Configurar el proyecto en la PC nueva
+
+1. Copiar la carpeta del proyecto (ver 12.2) y abrirla en VS Code / PowerShell.
+2. Instalar dependencias de Node (desde la carpeta principal):
+   ```powershell
+   cd "<ruta>\auto-manager-app"
+   npm install
+   ```
+3. **`capacitor.config.json` → `server.url`**: tiene que ser la URL **`/exec`** de la implementación vigente de Apps Script (Implementar → Administrar implementaciones). **Nunca la `/dev`.** Contenido de referencia:
+   ```json
+   {
+     "appId": "com.automanager.app",
+     "appName": "Auto Manager",
+     "webDir": "www",
+     "server": {
+       "url": "https://script.google.com/macros/s/<ID_DE_IMPLEMENTACION>/exec",
+       "cleartext": false,
+       "allowNavigation": [
+         "script.google.com", "*.google.com", "*.googleusercontent.com",
+         "*.cloudinary.com", "res.cloudinary.com", "upload-widget.cloudinary.com",
+         "wa.me", "api.whatsapp.com"
+       ]
+     },
+     "android": { "allowMixedContent": false, "webContentsDebuggingEnabled": false }
+   }
+   ```
+   `allowNavigation` lista los dominios que se abren *dentro* de la app (Google para Apps Script y el widget de Cloudinary); cualquier otro enlace se abre en el navegador. Si algún día se agrega un servicio externo que deba abrirse dentro de la app, agregar su dominio acá.
+4. **`android\local.properties`** (ruta del SDK; las barras invertidas van escapadas):
+   ```
+   sdk.dir=C\:\\Users\\<USUARIO>\\AppData\\Local\\Android\\Sdk
+   ```
+5. **`android\gradle.properties`** — agregar al final (barras normales, nombre exacto de la carpeta del JDK 21 de *esa* PC):
+   ```
+   org.gradle.java.home=C:/Program Files/Eclipse Adoptium/jdk-21.x.x.x-hotspot
+   ```
+   ⚠️ Esta línea es **específica de cada PC**. Si se copia el proyecto a otra máquina con otra ruta o versión de JDK, hay que corregirla (o borrarla si `JAVA_HOME` ya apunta a un JDK 21).
+6. **Firma:** copiar `auto-manager.keystore` a la carpeta principal y crear `android\keystore.properties` (ver 12.6).
+7. **Primera compilación de prueba** (debug, sin firma): ver 12.5. La primera vez Gradle descarga mucho (Gradle 8.11.1, dependencias) y tarda varios minutos.
+
+### 12.5 Compilar el APK
+
+> ⚠️ **No usar `npm run build:debug` / `npm run build:release` en Windows:** esos scripts usan `./gradlew`, que solo existe en Linux/Mac; en Windows falla con `"." no se reconoce como un comando interno o externo`. Usar los comandos de abajo.
+
+**APK de prueba (debug):**
+```powershell
+cd "<ruta>\auto-manager-app"
+npx cap sync android
+cd android
+.\gradlew.bat assembleDebug
+```
+Resultado: `android\app\build\outputs\apk\debug\app-debug.apk` (firmado con una clave de prueba genérica; **no repartir a clientes**).
+
+**APK final para repartir (release, firmado):**
+```powershell
+cd "<ruta>\auto-manager-app"
+npx cap sync android
+cd android
+.\gradlew.bat assembleRelease
+```
+Resultado: `android\app\build\outputs\apk\release\app-release.apk`. Si en cambio aparece **`app-release-unsigned.apk`**, Gradle no encontró `android\keystore.properties`: ese archivo no se puede instalar (ver 12.6).
+
+**Cuándo hay que correr `npx cap sync android`:** siempre que cambie `capacitor.config.json` (la URL se copia al APK en el *sync*, no al compilar con Gradle) o los íconos/recursos. Si Gradle dice `BUILD SUCCESSFUL` pero el APK no cambia de fecha, es que no detectó cambios: regenerar íconos / sincronizar y usar `.\gradlew.bat clean` antes de `assembleRelease`.
+
+**Cada APK nuevo que se reparta:** subir `versionCode` (y opcionalmente `versionName`) en `android\app\build.gradle`; Android rechaza una actualización con el mismo `versionCode`.
+
+### 12.6 Firma (keystore)
+
+El APK que se reparte debe ir **siempre firmado con el mismo keystore**. **Si se pierde, no se puede actualizar la app en los teléfonos ya instalados** (habría que desinstalar y reinstalar otra). Guardar `auto-manager.keystore` y sus contraseñas **fuera del proyecto** (gestor de contraseñas, pendrive, Drive privado). Nunca subirlos a un repositorio.
+
+**Crear el keystore (una sola vez, nunca de nuevo salvo que se pierda):**
+```powershell
+cd "<ruta>\auto-manager-app"
+& "C:\Program Files\Eclipse Adoptium\jdk-21.x.x.x-hotspot\bin\keytool.exe" -genkeypair -v -keystore auto-manager.keystore -alias automanager -keyalg RSA -keysize 2048 -validity 10000
+```
+Pregunta: contraseña del keystore (dos veces), nombre/organización/ciudad/provincia (cualquier dato), país `AR`, confirmación (`si`/`yes`) y contraseña de la clave (Enter = la misma). Usar el `keytool` del JDK 21, no el de Java 8 del PATH.
+
+**`android\keystore.properties`** (sin espacios alrededor del `=`):
+```
+storeFile=../../auto-manager.keystore
+storePassword=<CONTRASEÑA>
+keyAlias=automanager
+keyPassword=<CONTRASEÑA>
+```
+La ruta `../../auto-manager.keystore` es relativa a `android\app` y apunta a la carpeta principal del proyecto. Hay una plantilla en `android\keystore.properties.example`.
+
+**Cómo lo usa Gradle** (ya configurado en `android\app\build.gradle`): lee `keystore.properties` si existe y, solo en ese caso, firma el build `release` con él.
+```groovy
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file('keystore.properties')
+if (keystoreFile.exists()) { keystoreFile.withInputStream { keystoreProps.load(it) } }
+// dentro de android { ... }
+signingConfigs {
+    release {
+        if (keystoreFile.exists()) {
+            storeFile file(keystoreProps['storeFile'])
+            storePassword keystoreProps['storePassword']
+            keyAlias keystoreProps['keyAlias']
+            keyPassword keystoreProps['keyPassword']
+        }
+    }
+}
+buildTypes {
+    release {
+        if (keystoreFile.exists()) { signingConfig signingConfigs.release }
+        minifyEnabled false
+        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+    }
+}
+```
+
+### 12.7 Márgenes de pantalla (`MainActivity.java`)
+
+Desde Android 15 (`targetSdk` 35) las apps se dibujan "de borde a borde": sin código extra, la web queda **debajo de la cámara/barra de estado y de los botones de navegación**. `android\app\src\main\java\com\automanager\app\MainActivity.java` lo resuelve: aplica los márgenes del sistema como *padding*, sube el contenido cuando aparece el teclado y deja las barras en blanco con íconos oscuros.
+
+```java
+package com.automanager.app;
+
+import android.graphics.Color;
+import android.os.Bundle;
+import android.view.View;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        final View root = findViewById(android.R.id.content);
+        root.setBackgroundColor(Color.WHITE);
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), root);
+        controller.setAppearanceLightStatusBars(true);
+        controller.setAppearanceLightNavigationBars(true);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            int bottom = Math.max(bars.bottom, ime.bottom);
+            v.setPadding(bars.left, bars.top, bars.right, bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+    }
+}
+```
+
+Otros ajustes nativos ya aplicados: `android:allowBackup="false"` en `AndroidManifest.xml` (para que el token de sesión no entre en los backups de Android) y los dominios permitidos en `capacitor.config.json`.
+
+### 12.8 Ícono de la app
+
+La herramienta oficial `@capacitor/assets` genera todos los tamaños a partir de PNG ubicados en la carpeta **`assets`** (en la carpeta principal del proyecto, junto a `package.json`; **no** en `android\app\src\main\assets`, que Capacitor pisa en cada `sync`).
+
+**Archivos fuente (PNG):**
+- `assets\icon-only.png` — logo completo, **1024×1024**.
+- `assets\icon-foreground.png` — solo el logo con **fondo transparente**, **1024×1024**, con el logo **achicado y centrado** (ocupando aproximadamente los 2/3 centrales, unos 660 px). Android recorta el ícono adaptativo en círculo o cuadrado redondeado según el teléfono; si el logo llega a los bordes, se corta. Esta imagen es la que ven los teléfonos modernos; ajustar solo `icon-only.png` no alcanza.
+- Un `.ico` no sirve: hay que convertirlo a PNG (idealmente partir del logo original en PNG/SVG, porque un `.ico` tiene como máximo 256×256 y agrandado se ve borroso).
+
+**Generar los íconos (siempre desde la carpeta principal del proyecto):**
+```powershell
+cd "<ruta>\auto-manager-app"
+npm install @capacitor/assets --save-dev      # solo la primera vez
+npx capacitor-assets generate --android --iconBackgroundColor "#FFFFFF"
+
+# Parche obligatorio (ver nota): los XML generados apuntan a un fondo que no existe
+cd android\app\src\main\res\mipmap-anydpi-v26
+(Get-Content ic_launcher.xml) -replace '@mipmap/ic_launcher_background','@color/ic_launcher_background' | Set-Content ic_launcher.xml
+(Get-Content ic_launcher_round.xml) -replace '@mipmap/ic_launcher_background','@color/ic_launcher_background' | Set-Content ic_launcher_round.xml
+cd "<ruta>\auto-manager-app"
+
+npx cap sync android
+cd android
+.\gradlew.bat clean
+.\gradlew.bat assembleRelease
+```
+
+> ⚠️ **Por qué el parche:** cuando se pasa solo un color (`--iconBackgroundColor`) y no un archivo `icon-background.png`, `@capacitor/assets` genera los XML del ícono adaptativo apuntando a `@mipmap/ic_launcher_background`, que no existe, y la compilación falla con *"resource mipmap/ic_launcher_background not found"*. El parche los redirige a `@color/ic_launcher_background`, definido en `android\app\src\main\res\values\ic_launcher_background.xml` (blanco `#FFFFFF` por defecto; cambiar ese color si se quiere otro fondo). **Hay que repetir el parche cada vez que se vuelve a correr `generate`.** Alternativa (no probada): agregar un `assets\icon-background.png` de 1024×1024 para que la herramienta genere el fondo como imagen y no haga falta el parche.
+
+> ⚠️ **Errores comunes con el ícono:**
+> - Retocar el PNG de `assets` y recompilar **sin** correr `generate`: Gradle no ve cambios y el APK no se actualiza (la fecha del archivo no cambia). Siempre `generate` → parche → `sync` → `clean` → `assembleRelease`.
+> - Ejecutar los `cd` desde la carpeta equivocada: desde `android\app\src\main\res\mipmap-anydpi-v26` hay que subir **6** niveles hasta la carpeta principal; con 7 se llega a la carpeta de arriba y `npx cap sync` falla ("could not determine executable to run"). Usar la ruta completa entre comillas, como en el bloque de arriba.
+> - Después de instalar el APK nuevo, **desinstalar primero la versión anterior**: algunos lanzadores guardan el ícono viejo en caché.
+
+El nombre que se ve bajo el ícono es `appName` de `capacitor.config.json` (y `android\app\src\main\res\values\strings.xml`).
+
+### 12.9 Instalar y distribuir a clientes
+
+**En un teléfono Android:**
+1. Pasar `app-release.apk` al teléfono (WhatsApp como documento, Drive, cable USB).
+2. Abrirlo y permitir "instalar apps desconocidas" para la aplicación desde la que se abre (solo esa).
+3. Aparece el aviso de **Google Play Protect** ("Se bloqueó la app para proteger tu dispositivo / Play Protect no vio una app de este desarrollador antes"). Es normal en APK instalados fuera de Play Store: tocar **"Instalar de todas formas"**. Conviene mandarle al cliente una captura y esta instrucción de dos líneas para que no se asuste.
+4. **Si ya había otra versión instalada con distinta firma** (por ejemplo, la de debug), Android no deja pisarla: desinstalarla primero. Mientras se use siempre el mismo keystore, las versiones nuevas se instalan encima (siempre que el `versionCode` sea mayor).
+
+**Instalación por cable (opcional):** activar *Depuración USB* en el teléfono y:
+```powershell
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r android\app\build\outputs\apk\release\app-release.apk
+```
+
+**Sobre el aviso de Play Protect:** firmar con un keystore propio y estable (12.6) lo mejora respecto del APK de debug, pero no lo elimina mientras el APK se reparta fuera de Play Store. Para evitarlo por completo habría que publicar en Play Store (cuenta de desarrollador, USD 25 por única vez; puede ser prueba cerrada o app privada), con el riesgo de que Google rechace apps que son solo una web envuelta si no suman funciones propias.
+
+**Franja azul "Un usuario de Google Apps Script creó esta aplicación":** la agrega Google a todas las Web Apps de Apps Script abiertas a cualquiera y se muestra arriba de la app (se cierra con la X). **No se puede quitar desde el código mientras el frontend se sirva desde Apps Script**; eliminarla requeriría alojar el frontend en otro sitio y dejar solo el backend en Apps Script (reescritura importante). Avisar a los clientes que es normal.
+
+### 12.10 Solución de problemas del APK
+
+| Síntoma / mensaje | Causa | Solución |
+|---|---|---|
+| `"." no se reconoce como un comando interno o externo` al correr `npm run build:release` | Los scripts de `package.json` usan `./gradlew` (Linux/Mac) | Usar `cd android` + `.\gradlew.bat ...` (12.5) |
+| *Dependency requires at least JVM runtime version 11. This build uses a Java 8 JVM* | Gradle toma el Java 8 viejo del PATH | JDK 21 + `org.gradle.java.home` en `gradle.properties` (12.4.5), luego `.\gradlew.bat --stop` |
+| `error: invalid source release: 21` | Se está usando JDK 17 (Capacitor 7 pide 21) | Instalar JDK 21 y apuntar `org.gradle.java.home` a él |
+| *SDK location not found* | Falta `android\local.properties` o `ANDROID_HOME` | Crear `local.properties` con `sdk.dir=...` (12.4.4) |
+| *Failed to install the following Android SDK packages as some licences have not been accepted* | Licencias del SDK sin aceptar | `sdkmanager.bat --licenses` (12.3) |
+| `sdkmanager.bat` no se encuentra | Carpeta `cmdline-tools\latest\bin` mal armada | Mover `bin` y `lib` dentro de una carpeta `latest` (12.3, opción B) |
+| *resource mipmap/ic_launcher_background not found* | XML del ícono adaptativo apunta a un fondo inexistente | Aplicar el parche `-replace` de 12.8 |
+| El APK no cambia de fecha / sigue el ícono viejo | No se regeneraron los íconos o Gradle no detectó cambios | `generate` → parche → `sync` → `clean` → `assembleRelease`; desinstalar la app vieja del teléfono |
+| `npm ERR! could not determine executable to run` en `cap sync` | Se ejecutó fuera de la carpeta del proyecto | `cd` a la carpeta principal con la ruta completa |
+| Sale `app-release-unsigned.apk` y no se puede instalar | Falta `android\keystore.properties` (o está mal) | Crearlo / corregir ruta y contraseñas (12.6) |
+| La app muestra "Cargando Auto Manager…" o una página de error | `server.url` sin reemplazar o incorrecta; o falta `npx cap sync` | Corregir `capacitor.config.json` (URL `/exec`), `npx cap sync android` y recompilar |
+| *App no instalada* / no deja instalar encima | Otra firma (debug vs release) o `versionCode` igual o menor | Desinstalar la anterior / subir `versionCode` |
+| La app se dibuja debajo de la cámara o de los botones del teléfono | Falta el manejo de márgenes de Android 15 | `MainActivity.java` de 12.7 |
+| `npm audit` marca 7 vulnerabilidades al instalar `@capacitor/assets` | Dependencias de herramientas de desarrollo; no forman parte del APK | Ignorar. **No** correr `npm audit fix --force` (puede romper las versiones de Capacitor) |
+| Aviso de Play Protect al instalar | APK fuera de Play Store | Normal: "Instalar de todas formas" (12.9) |
+
+### 12.11 Qué está verificado y qué no (APK)
+
+**Confirmado en un teléfono real:** compilación del APK debug y release, instalación (con el aviso de Play Protect), carga de la Web App dentro de la app, ícono propio (confirmado por el responsable tras ajustar el PNG).
+
+**No confirmado todavía:**
+- Que los márgenes de `MainActivity.java` resuelvan el solapamiento con la cámara y los botones en todos los modelos (el problema se detectó en un teléfono real; tras aplicar `MainActivity.java` no se envió una captura de confirmación).
+- **Subida de fotos/videos** desde el celular con el widget de Cloudinary dentro del WebView (selector de archivos / cámara).
+- Persistencia de la sesión ("Mantener la sesión iniciada") al cerrar y reabrir la app.
+- Apertura de WhatsApp desde el botón del login dentro de la app.
+- Comportamiento con APK firmado por el keystore definitivo en otros modelos/versiones de Android.
