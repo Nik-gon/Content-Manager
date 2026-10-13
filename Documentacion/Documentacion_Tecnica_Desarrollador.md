@@ -1,8 +1,8 @@
 # Auto Manager — Documentación Técnica (para desarrolladores)
 
 **Estado:** v2 multi-tenant, en validación (ver sección 9, "qué está verificado y qué no").
-**Última actualización:** alineada con `Backend.js`, `Index.html` y el blueprint `Integration Google Sheets` vigentes, e incluye la app Android (sección 12) — octubre 2026.
-**Stack:** Google Apps Script (backend + frontend servido como Web App) + Google Sheets (base de datos) + Cloudinary (medios) + Make.com (orquestación) + Gemini (copywriting) + Instagram Business API (publicación) + app Android (APK) como envoltorio Capacitor de la Web App (ver sección 12).
+**Última actualización:** alineada con `Backend.js`, `Index.html`, el blueprint **final en producción** de Make (`Integration Google Sheets`, con Groq) y la app Android (sección 12) — octubre 2026.
+**Stack:** Google Apps Script (backend + frontend servido como Web App) + Google Sheets (base de datos) + Cloudinary (medios) + Make.com (orquestación) + Groq (copywriting, modelo `openai/gpt-oss-120b`) + Instagram Business API (publicación) + app Android (APK) como envoltorio Capacitor de la Web App (ver sección 12).
 
 ---
 
@@ -11,7 +11,7 @@
 Plataforma multi-tenant que permite a emprendimientos chicos (indumentaria, retail local) armar y publicar contenido en Instagram sin trabajo manual de redacción ni de subida.
 
 - El dueño del negocio entra a una **Web App** (Apps Script), arma el posteo (arrastra fotos/videos, pie de foto opcional) y lo manda a una cola.
-- **Make.com** procesa la cola: si no hay pie de foto, lo genera con **Gemini**; publica en Instagram (Feed, Reel o Carrusel); marca la fila como enviada.
+- **Make.com** procesa la cola: si no hay pie de foto, lo genera con **Groq (IA)**; publica en Instagram (Feed, Reel o Carrusel); marca la fila como enviada.
 - **Cloudinary** aloja y transforma los medios (conversión a `.jpg`, padding a cuadrado para carrusel).
 
 Es **multi-tenant con aislamiento físico de datos**: un Sheet Maestro (usuarios + config global) y un Sheet independiente por cliente (su catálogo, su cola, su configuración). Se eligió este modelo (en vez de un sheet único con columna `ClienteID`) priorizando que un bug de filtrado nunca exponga datos entre clientes, a costa de más trabajo manual de alta. Válido para la escala objetivo (~20 clientes).
@@ -33,10 +33,10 @@ Es **multi-tenant con aislamiento físico de datos**: un Sheet Maestro (usuarios
    2. Router de 3 ramas:
         cola vacía (col A no existe)  → termina limpio (placeholder)
         Pie_Foto manual               → usa ese texto
-        sin Pie_Foto                  → busca Producto + Galeria_Medios, llama a Gemini
+        sin Pie_Foto                  → busca Producto + Galeria_Medios, llama a Groq (IA)
    3. Sub-router por Formato/URL → Imagen / Video (Reel) / Carrusel
    4. Publica en Instagram (instagram-business, accountId del cliente)
-   5. Update Row: Estado = Enviado   (Fecha_Publicacion: pendiente de mapear — ver 6.1)
+   5. Update Row: Estado = Enviado + Fecha_Publicacion (fecha del día, DD/MM/YYYY — ver 6.1)
 ```
 
 El reciclado **ya no es un escenario aparte**: está integrado como primer módulo del escenario principal y la lógica vive en el backend de Apps Script (ver 6.2).
@@ -51,7 +51,7 @@ El reciclado **ya no es un escenario aparte**: está integrado como primer módu
 | Sheet de cliente (uno por cliente) | Google Sheets | `Productos`, `Categorias_Config`, `Galeria_Medios`, `Cola_Publicacion`, `Configuracion` |
 | Medios | Cloudinary (widget Unsigned) | Hosting + transformación |
 | Orquestación | Make.com (1 escenario por cliente) | Dispara el reciclado, consume la cola, genera el copy, publica |
-| IA de copywriting | Gemini `gemini-2.5-flash-lite` (módulo nativo `gemini-ai` en Make) | Redacta el pie de foto si está vacío |
+| IA de copywriting | **Groq** `openai/gpt-oss-120b` (módulo nativo `groq:chatCompletion` en Make; antes se usaba Gemini) | Redacta el pie de foto si está vacío |
 | Publicación | Instagram Business API (conector nativo de Make) | Feed / Reel / Carrusel |
 | App Android | Capacitor 7 (WebView) | Envoltorio del `/exec` para repartir como APK a los clientes (sección 12) |
 
@@ -115,9 +115,9 @@ Los índices de columna están en la constante `COL` (base 0) en `Backend.js` �
 | D | `URLs_Payload` | URLs separadas por `" * "` (asterisco con espacios); el orden es el de publicación |
 | E | `Estado` | `Pendiente` / `Enviado` |
 | F | `Timestamp` | fecha de creación |
-| G | `Pie_Foto` | vacío = lo redacta Gemini |
+| G | `Pie_Foto` | vacío = lo redacta la IA (Groq) |
 | H | `Orden_Ejecucion` | define el orden de procesamiento en Make (ver 3.3) |
-| I | `Fecha_Publicacion` | fecha en que Make efectivamente publicó. Se crea sola (`asegurarColumnaFechaPublicacion_`) si falta, al llamar `getInitialData`. **Make todavía no la completa** (ver 6.1) |
+| I | `Fecha_Publicacion` | fecha en que Make efectivamente publicó. La completa Make en los 6 `Update Row` con `formatDate(now; "DD/MM/YYYY")` (solo fecha, sin hora; ver 6.1). Se crea sola (`asegurarColumnaFechaPublicacion_`) si falta, al llamar `getInitialData` |
 
 **`Configuracion`** (clave-valor vertical, una fila por clave; encabezados `Clave | Valor`):
 
@@ -259,7 +259,7 @@ Expone `window.App = { iniciar(data), reiniciar() }`. Estado centralizado en `st
 
 ## 6. Automatización en Make.com
 
-Blueprint de referencia: `Integration Google Sheets` (un solo escenario por cliente).
+Blueprint de referencia: `Integration Google Sheets` — **versión final en producción** (un solo escenario por cliente). Respecto de la versión anterior cambia: la IA (Gemini → **Groq**), el manejo de errores (reintentos), `Fecha_Publicacion` (ya se completa) y el filtro de `Galeria_Medios` (ver sección 11).
 
 ### 6.1 Flujo del escenario
 
@@ -267,7 +267,7 @@ Blueprint de referencia: `Integration Google Sheets` (un solo escenario por clie
 1. **Google Sheets → Search Rows** (módulo 2) en `Cola_Publicacion`: `Estado = Pendiente` **y** columna A no vacía, orden por `Orden_Ejecucion` (H) asc, límite 1.
 2. **Router** (módulo 39) con 3 ramas:
    - `{{2.0}}` no existe (cola vacía) → `placeholder`, termina la corrida sin error. *Esto resuelve el pendiente histórico del Filter de cola vacía (se hizo con una rama del router, no con un Filter).*
-   - `Pie_Foto` (`{{2.6}}`) no existe → busca `Productos` (por SKU) y `Galeria_Medios` (por primera URL) → **Gemini** (`gemini-2.5-flash-lite`) → publica con `{{55.result}}`. (Esta rama aparece rotulada "Camino manual" en el blueprint por un error de nombre; es la rama sin pie manual.)
+   - `Pie_Foto` (`{{2.6}}`) no existe → busca `Productos` (módulo 56, por SKU) y `Galeria_Medios` (módulo 57; ver la nota sobre este módulo más abajo) → **Groq** (módulo 103, modelo `openai/gpt-oss-120b`) → publica con `{{103.result}}`. (Esta rama aparece rotulada "Camino manual" en el blueprint por un error de nombre; es la rama sin pie manual.)
    - `Pie_Foto` existe → publica con el texto tal cual.
 3. **Sub-router** por `Formato` + contenido de la URL:
 
@@ -278,10 +278,14 @@ Blueprint de referencia: `Integration Google Sheets` (un solo escenario por clie
    | `Carrusel` | — | Carrusel (`CreateCarouselPhoto`) vía Feeder (`split` por `" * "`) + Aggregator, con transformación Cloudinary `c_pad,w_1080,h_1080,b_auto,f_jpg` |
 
 4. **Publica** en Instagram vía `instagram-business` (`accountId` configurado en cada uno de los 6 módulos de publicación).
-5. **Update Row** (6 módulos, uno por camino: 75, 92, 93, 94, 95, 96): hoy solo mapea `Estado = Enviado`.
-   > ⚠️ **Pendiente sin aplicar:** mapear también `Fecha_Publicacion` (columna I) con algo como `{{formatDate(now; "DD/MM/YYYY HH:mm"; "America/Argentina/Buenos_Aires")}}` **en los 6 módulos**. Si el módulo no muestra la columna nueva, usar **Refresh** dentro del módulo de Sheets. Hasta que se haga, la columna "Fecha de publicación" de la app queda vacía.
+5. **Update Row** (6 módulos, uno por camino: 75, 92, 93, 94, 95, 96): mapea `Estado = Enviado` (columna E) y **`Fecha_Publicacion`** (columna I) con `{{formatDate(now; "DD/MM/YYYY")}}`. *(Ya está aplicado en el blueprint final; era un pendiente de la versión anterior.)*
+   > ℹ️ Guarda **solo la fecha**, sin hora y sin zona horaria explícita (usa la de la cuenta/escenario de Make). La app muestra esa columna como `dd/MM/yyyy HH:mm` cuando Sheets la interpreta como fecha, por lo que lo esperable es ver la hora `00:00` (**deducido del código, no probado**). Si se quiere mostrar la hora real, usar en los 6 módulos `{{formatDate(now; "DD/MM/YYYY HH:mm"; "America/Argentina/Buenos_Aires")}}`.
 
-**Prompt de Gemini:** el texto de sistema y las instrucciones están **escritos a mano para la marca NOVAELA** (nombre de la marca, link de la tienda `novaelaintimates.mitiendanube.com` y hashtags fijos `#NOVAELA #ModaFemenina #EstiloNOVAELA`). Al clonar el escenario para otro cliente hay que reemplazarlos. Instrucciones diferenciadas por tipo de imagen principal (`MOD` lifestyle / `PROD` calidad y textura / `BRANDED` cercanía con la marca) y llamado a la acción por escasez si `Stock < 5`. El módulo tiene activado `google_search_context`.
+**Módulo de IA (Groq):** `groq:chatCompletion` con modelo `openai/gpt-oss-120b`, `temperature` 0,7, `max_tokens` 1500 y respuesta en texto; reemplaza al módulo de Gemini (`gemini-2.5-flash-lite`) de versiones anteriores. Lleva un mensaje de sistema y un mensaje de usuario **escritos a mano para la marca NOVAELA** (nombre de la marca, link de la tienda `novaelaintimates.mitiendanube.com` y hashtags fijos `#NOVAELA #ModaFemenina #EstiloNOVAELA`); al clonar el escenario para otro cliente hay que reemplazarlos. Instrucciones diferenciadas por tipo de imagen principal (`MOD` lifestyle / `PROD` calidad y textura / `BRANDED` cercanía con la marca) y llamado a la acción por escasez si `Stock < 5`.
+
+**Manejo de errores:** el módulo Groq tiene un *error handler* `Break` (módulo 113) que ante un error (por ejemplo un límite de uso o una caída del servicio) **reintenta 3 veces, una cada 5 minutos**. Para que funcione, el escenario tiene activado el almacenamiento de ejecuciones incompletas (`dlq: true`). Los demás módulos (Instagram, Sheets, HTTP) no tienen error handler; el escenario conserva `maxErrors: 3`.
+
+**Nota sobre el módulo 57 (`Galeria_Medios`):** ahora filtra la columna D (`URL`) por **"contiene"** ``{{2.`3`}}`` (antes era "igual"). Ese valor es **todo** `URLs_Payload`. En una publicación de un solo archivo coincide con la fila del medio; en un **carrusel** (URLs unidas con `" * "`) el texto completo no está contenido en ninguna celda, así que, por cómo está armado el filtro, probablemente no devuelve fila y el tipo de imagen (`{{57.`2`}}`) llega vacío al prompt (**deducido del filtro, no probado**). La versión anterior de este documento decía "por primera URL": era incorrecto. Corrección sugerida: filtrar con la primera URL, ``{{first(split(2.`3`; " * "))}}``.
 
 ### 6.2 Reciclado ("Iterativo")
 
@@ -293,14 +297,15 @@ Lo ejecuta el **backend** (`revisarYReiniciarColaInterno_`) cuando Make lo llama
 
 Como corre antes del `Search Rows`, en la misma corrida en que se vacía la cola ya se publica el primer post reciclado. No hay un escenario de reciclado separado ni una programación aparte: **la frecuencia es la del escenario principal**. El cambio de `Fecha_Publicacion` en el reciclado (pendiente en la versión anterior de este documento) **ya está resuelto en el backend**.
 
-> ⚠️ **Problemas detectados en el módulo HTTP del blueprint actual (a corregir antes de entregar a un cliente):**
+> ⚠️ **Problemas en el módulo HTTP (101) del blueprint final — siguen sin corregir, el módulo no cambió respecto de la versión anterior (a resolver antes de entregar a un cliente):**
 > 1. **Usa la URL `/dev`** de la Web App (deployment de prueba: solo funciona con la sesión del dueño y sirve siempre el último código guardado). Debe apuntar a la URL **`/exec`** de la implementación publicada.
 > 2. **Usa GET con la clave en la URL** (`?action=reciclarCola&idSheet=…&key=…`). Es el camino legacy: la clave queda en logs de Make y de Google. Migrar a **POST** (`doPost` ya está implementado; enviar `action`, `key` e `idSheet` como formulario o JSON) y después borrar el bloque de compatibilidad de `doGet`.
 > 3. **El blueprint contiene en texto plano el `MAKE_SECRET` y el `idSheet`** del cliente de prueba. Si el archivo se comparte o se entrega a un cliente "Instalación Única", **rotar el `MAKE_SECRET`** (Propiedades del script) y cambiar el `idSheet` en cada copia.
+> 4. **Verificar en el historial de ejecuciones de Make qué devuelve realmente el módulo 101**: tiene que ser un JSON con `estado` (`PENDIENTES_ACTIVOS`, `REINICIADO` o `IGNORADO`). Si devuelve HTML o la pantalla de acceso de Google, el reciclado no está funcionando aunque el escenario no marque error.
 
 ### 6.3 Credenciales y cuentas en Make
 
-- Conexión de Google Sheets (`__IMTCONN__`) y de Instagram propias de cada escenario.
+- Conexiones propias de cada escenario: Google Sheets, Instagram y **Groq** (API key de Groq; en el plan "Instalación Única" el cliente necesita su propia conexión en su cuenta de Make).
 - `accountId` de Instagram del blueprint de referencia: `17841439199985986` en los 6 módulos de publicación — **confirmar que sea la cuenta comercial real y no la de prueba** antes de activar un cliente.
 
 ---
@@ -309,6 +314,7 @@ Como corre antes del `Search Rows`, en la misma corrida en que se vacía la cola
 
 - [ ] Instagram: cuenta **Empresa/Creador**, vinculada a una Página de Facebook, con el dueño del negocio como administrador de control total de esa página.
 - [ ] `accountId` del módulo `instagram-business` en Make apunta a la cuenta comercial real del cliente (no a una cuenta de prueba) — en los 6 módulos.
+- [ ] Conexión de **Groq** activa en el escenario (API key vigente) y prompt adaptado a la marca del cliente.
 - [ ] Cuenta de Google que corre Apps Script: **editora** de cada Sheet de cliente (requisito de `openById`).
 - [ ] Web App desplegada con acceso **"Cualquier usuario, incluso anónimo"** y ejecutándose como el dueño; Make llama a la URL `/exec`.
 - [ ] Propiedad de script `MAKE_SECRET` definida (si falta, el reciclado responde "No autorizado").
@@ -318,12 +324,12 @@ Como corre antes del `Search Rows`, en la misma corrida en que se vacía la cola
 
 ## 8. Limitaciones y decisiones conocidas
 
-- **Iterativo borra pies de foto manuales** en cada ciclo (los vacía el reciclado para que Gemini genere textos nuevos) — está avisado en la UI con un cuadro informativo, pero es irreversible.
+- **Iterativo borra pies de foto manuales** en cada ciclo (los vacía el reciclado para que la IA genere textos nuevos) — está avisado en la UI con un cuadro informativo, pero es irreversible.
 - **Sesión:** vence a los **14 días** del último login; no se renueva por uso. Hay que cambiar `SESION_DIAS` para ajustarlo.
 - **Tope de registros:** 30 altas por hora en total (todo el sistema), no por IP.
 - **`obtenerConfiguracionGlobal` es pública** (se llama antes del login) — no cargar nada sensible en `Configuracion_Global`.
 - **Solo URLs de Cloudinary** pueden encolarse (ver 3.2).
-- **Gemini y marca:** el prompt está fijo para NOVAELA; no hay prompt por cliente en la app.
+- **IA y marca:** el prompt del módulo Groq está fijo para NOVAELA; no hay prompt por cliente en la app.
 - **El hash de contraseña es SHA-256 iterado 2000 veces** (limitado por lo que ofrece Apps Script, que no tiene bcrypt/argon2). Se puede subir `HASH_ITERACIONES` midiendo antes con `medirCostoHash`.
 - "Automatizar con IA" es selección local de patrones, no IA real.
 - El límite de 10 medios por carrusel está validado en front y en backend.
@@ -334,14 +340,14 @@ Como corre antes del `Search Rows`, en la misma corrida en que se vacía la cola
 
 ## 9. Qué está verificado y qué no (estado a la fecha de este documento)
 
-**Verificado en una revisión de código** (lectura de `Backend.js`, `Index.html` y el blueprint contra esta documentación): firmas y comportamiento de todas las funciones del backend, llamadas `rpc` del front, estructura del escenario de Make, esquema de las planillas de referencia.
+**Verificado en una revisión de código** (lectura de `Backend.js`, `Index.html` y de los dos blueprints de Make, comparados módulo por módulo, contra esta documentación): firmas y comportamiento de todas las funciones del backend, llamadas `rpc` del front, estructura del escenario de Make **final en producción** (Groq, Break, `Fecha_Publicacion`, filtros), esquema de las planillas de referencia. *Es una lectura del archivo exportado: no se vio el escenario corriendo ni su historial de ejecuciones.*
 
 **Verificado en pruebas anteriores** (sobre archivos con los parches aplicados, fuera del entorno real): sintaxis de backend y frontend, ids duplicados, manejadores de `data-action`, flujos de login/logout/recordar sesión, combo, automatizador, modal de edición, iterativo, perfil, tutoriales y guía interactiva.
 
 **NO verificado** (requiere el entorno real del cliente/proveedor; no se ejecutó nada contra Apps Script ni Make en esta actualización):
 - Renderizado real en celular (menú lateral, modales, guía interactiva, pantalla informativa).
 - Llamada real Make → Apps Script (`/exec` con POST), incluyendo el `MAKE_SECRET`.
-- Que Make escriba `Fecha_Publicacion` (cambio pendiente).
+- Que `Fecha_Publicacion` se vea bien en la app (el blueprint guarda solo la fecha; ver 6.1), el comportamiento del módulo 57 con carruseles y los reintentos del `Break` de Groq en una falla real.
 - Cambio de contraseña y migración de hash v1→v2 contra el Sheet real. *(La cuenta de prueba de la planilla `Usuarios` todavía tiene hash v1 y token en texto plano de la versión anterior: al primer login se migra el hash, y la sesión vieja deja de valer porque ahora se compara el hash del token.)*
 - Si el gestor de contraseñas del navegador ofrece guardar la clave dentro del iframe de Apps Script.
 - APK: subida de fotos desde el celular, persistencia de sesión, WhatsApp y márgenes en otros modelos (ver 12.11).
@@ -351,18 +357,21 @@ Como corre antes del `Search Rows`, en la misma corrida en que se vacía la cola
 ## 10. Pendientes técnicos (prioridad sugerida)
 
 1. **Corregir el módulo HTTP de Make:** `/dev` → `/exec`, GET → POST con `key` fuera de la URL, y rotar `MAKE_SECRET` antes de compartir el blueprint (ver 6.2). Luego borrar el bloque de compatibilidad de `doGet`.
-2. **Make:** mapear `Fecha_Publicacion` al marcar `Enviado` en los 6 módulos Update Row (ver 6.1).
-3. Parametrizar el prompt de Gemini por cliente (marca, link de tienda, hashtags) al clonar el escenario.
-4. Re-vincular la cuenta de Instagram comercial real (el `accountId` del blueprint de referencia puede ser de prueba).
-5. Validar en el entorno real todo lo listado como "NO verificado" en la sección 9.
-6. Resolver/confirmar el bug histórico de "Registrarme" sin respuesta (ver guía de implementación, troubleshooting): si reaparece tras una "Nueva versión" + `Ctrl+F5`, levantar el error de consola.
-7. **APK:** probar en un teléfono real la subida de fotos con el widget de Cloudinary, la sesión persistente y el botón de WhatsApp (12.11); decidir si se publica en Play Store o se sigue repartiendo el APK firmado.
-8. **APK:** corregir los scripts `build:debug`/`build:release` de `package.json` para que funcionen en Windows (hoy usan `./gradlew`).
-9. Decidir si `Fecha_Publicacion` debe ser la fecha real de publicación (interpretación actual) o una fecha programada (requeriría selector de fecha + que Make filtre por fecha ≤ hoy).
+2. **Make (opcional):** `Fecha_Publicacion` ya se mapea en los 6 `Update Row` (solo fecha). Agregar hora y zona horaria si se quiere ver la hora real (6.1).
+3. Parametrizar el prompt de Groq por cliente (marca, link de tienda, hashtags) al clonar el escenario.
+4. **Make:** corregir el filtro del módulo 57 (`Galeria_Medios`) para usar la primera URL de `URLs_Payload` y que el tipo de imagen llegue al prompt también en carruseles (ver 6.1).
+5. Re-vincular la cuenta de Instagram comercial real (el `accountId` del blueprint de referencia puede ser de prueba).
+6. Validar en el entorno real todo lo listado como "NO verificado" en la sección 9.
+7. Resolver/confirmar el bug histórico de "Registrarme" sin respuesta (ver guía de implementación, troubleshooting): si reaparece tras una "Nueva versión" + `Ctrl+F5`, levantar el error de consola.
+8. **APK:** probar en un teléfono real la subida de fotos con el widget de Cloudinary, la sesión persistente y el botón de WhatsApp (12.11); decidir si se publica en Play Store o se sigue repartiendo el APK firmado.
+9. **APK:** corregir los scripts `build:debug`/`build:release` de `package.json` para que funcionen en Windows (hoy usan `./gradlew`).
+10. Decidir si `Fecha_Publicacion` debe ser la fecha real de publicación (interpretación actual) o una fecha programada (requeriría selector de fecha + que Make filtre por fecha ≤ hoy).
 
 ---
 
 ## 11. Cambios respecto a la versión anterior de este documento
+
+*Incluye el blueprint final de Make que está en producción (octubre 2026).*
 
 | Tema | Antes | Ahora |
 |---|---|---|
@@ -379,6 +388,11 @@ Como corre antes del `Search Rows`, en la misma corrida en que se vacía la cola
 | Perfil | devolvía fecha de aprobación | devuelve `fechaRegistro` ("Cliente desde") |
 | Responsive | "no hay versión responsiva" | menú lateral desplegable bajo 1024 px |
 | Embebido | — | sin `ALLOWALL` (anti-clickjacking) |
+| IA de copywriting en Make | Gemini (`gemini-2.5-flash-lite`, módulo `gemini-ai`) | **Groq** (`openai/gpt-oss-120b`, módulo `groq:chatCompletion`, módulo 103); el prompt es el mismo (NOVAELA) |
+| Errores de la IA | sin manejo | `Break` (módulo 113): **3 reintentos cada 5 min**; ejecuciones incompletas activadas (`dlq: true`) |
+| `Fecha_Publicacion` en Make | pendiente de mapear | **mapeada** en los 6 `Update Row` con `formatDate(now; "DD/MM/YYYY")` (solo fecha) |
+| Filtro de `Galeria_Medios` (módulo 57) | URL **igual** a `URLs_Payload` | URL **contiene** `URLs_Payload` (en carruseles probablemente no encuentra fila; ver 6.1) |
+| Módulo HTTP de reciclado (101) | `/dev`, GET, clave en la URL | **sin cambios** (siguen los 3 problemas de 6.2) |
 | App Android | — | Nueva: envoltorio Capacitor + guía completa de armado, firma, íconos e instalación (**sección 12**) |
 
 ---
