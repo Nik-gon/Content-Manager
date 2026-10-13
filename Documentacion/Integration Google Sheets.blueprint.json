@@ -6,17 +6,17 @@
             "module": "http:MakeRequest",
             "version": 4,
             "parameters": {
-                "authenticationType": "noAuth",
-                "tlsType": ""
+                "tlsType": "",
+                "authenticationType": "noAuth"
             },
             "mapper": {
-                "url": "https://script.google.com/macros/s/AKfycbzEUrl0XgI56C_NrGnQvueZorZfY9hGb3teMXvL_VrWeRd_x2OdD79yrvQk3IbnkFDakw/exec?action=reciclarCola&idSheet=1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
+                "url": "https://script.google.com/macros/s/AKfycbwwILpa8SJ_DKCB3tyclcO7bLYtDW7imKZ_wjrMkUNA/dev?action=reciclarCola&idSheet=1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc&key=maiojwrouigj9874uhalkdjfa88878qopjsdkahf8r",
                 "method": "get",
-                "parseResponse": true,
-                "stopOnHttpError": true,
                 "timeout": "40",
-                "allowRedirects": true,
                 "shareCookies": false,
+                "parseResponse": true,
+                "allowRedirects": true,
+                "stopOnHttpError": true,
                 "requestCompressedContent": true
             },
             "metadata": {
@@ -24,23 +24,7 @@
                     "x": 1197,
                     "y": -86
                 },
-                "setupValidation": {
-                    "version": 1,
-                    "configuration": "1ed2348f78cb2fdd",
-                    "result": {
-                        "valid": true,
-                        "fields": []
-                    }
-                },
                 "restore": {
-                    "parameters": {
-                        "authenticationType": {
-                            "label": "No authenticationUse when no credentials are required for the request."
-                        },
-                        "tlsType": {
-                            "label": "Empty"
-                        }
-                    },
                     "expect": {
                         "method": {
                             "mode": "chose",
@@ -49,29 +33,37 @@
                         "headers": {
                             "mode": "chose"
                         },
-                        "queryParameters": {
-                            "mode": "chose"
-                        },
                         "contentType": {
                             "label": "Empty"
                         },
-                        "parseResponse": {
+                        "shareCookies": {
                             "mode": "chose"
                         },
-                        "stopOnHttpError": {
+                        "parseResponse": {
                             "mode": "chose"
                         },
                         "allowRedirects": {
                             "mode": "chose"
                         },
-                        "shareCookies": {
+                        "paginationType": {
+                            "label": "Empty"
+                        },
+                        "queryParameters": {
+                            "mode": "chose"
+                        },
+                        "stopOnHttpError": {
                             "mode": "chose"
                         },
                         "requestCompressedContent": {
                             "mode": "chose"
-                        },
-                        "paginationType": {
+                        }
+                    },
+                    "parameters": {
+                        "tlsType": {
                             "label": "Empty"
+                        },
+                        "authenticationType": {
+                            "label": "No authenticationUse when no credentials are required for the request."
                         }
                     }
                 },
@@ -133,17 +125,13 @@
                     },
                     {
                         "name": "headers",
-                        "type": "array",
-                        "label": "Headers",
                         "spec": {
                             "name": "value",
-                            "label": "Header",
-                            "type": "collection",
                             "spec": [
                                 {
                                     "name": "name",
-                                    "label": "Name",
                                     "type": "text",
+                                    "label": "Name",
                                     "required": true,
                                     "validate": {
                                         "pattern": "^[-!#$%&'*+.^_`|~0-9A-Za-z]+$"
@@ -151,34 +139,38 @@
                                 },
                                 {
                                     "name": "value",
-                                    "label": "Value",
-                                    "type": "text"
+                                    "type": "text",
+                                    "label": "Value"
                                 }
-                            ]
-                        }
+                            ],
+                            "type": "collection",
+                            "label": "Header"
+                        },
+                        "type": "array",
+                        "label": "Headers"
                     },
                     {
                         "name": "queryParameters",
-                        "type": "array",
-                        "label": "Query parameters",
                         "spec": {
                             "name": "value",
-                            "label": "Parameter",
-                            "type": "collection",
                             "spec": [
                                 {
                                     "name": "name",
-                                    "label": "Name",
                                     "type": "text",
+                                    "label": "Name",
                                     "required": true
                                 },
                                 {
                                     "name": "value",
-                                    "label": "Value",
-                                    "type": "text"
+                                    "type": "text",
+                                    "label": "Value"
                                 }
-                            ]
-                        }
+                            ],
+                            "type": "collection",
+                            "label": "Parameter"
+                        },
+                        "type": "array",
+                        "label": "Query parameters"
                     },
                     {
                         "name": "contentType",
@@ -210,8 +202,8 @@
                         "type": "uinteger",
                         "label": "Timeout",
                         "validate": {
-                            "min": 1,
-                            "max": 300
+                            "max": 300,
+                            "min": 1
                         }
                     },
                     {
@@ -249,53 +241,53 @@
                 "interface": [
                     {
                         "name": "data",
-                        "label": "Data",
-                        "type": "any"
+                        "type": "any",
+                        "label": "Data"
                     },
                     {
                         "name": "statusCode",
-                        "label": "Status Code",
-                        "type": "number"
+                        "type": "number",
+                        "label": "Status Code"
                     },
                     {
                         "name": "headers",
-                        "label": "Headers",
-                        "type": "collection",
                         "spec": [
                             {
                                 "name": "content-length",
-                                "label": "Content-Length",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Content-Length"
                             },
                             {
                                 "name": "content-encoding",
-                                "label": "Content-Encoding",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Content-Encoding"
                             },
                             {
                                 "name": "content-type",
-                                "label": "Content-Type",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Content-Type"
                             },
                             {
                                 "name": "server",
-                                "label": "Server",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Server"
                             },
                             {
                                 "name": "cache-control",
-                                "label": "Cache-Control",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Cache-Control"
                             },
                             {
                                 "name": "set-cookie",
-                                "label": "Set-Cookie",
-                                "type": "array",
                                 "spec": {
                                     "type": "text"
-                                }
+                                },
+                                "type": "array",
+                                "label": "Set-Cookie"
                             }
-                        ]
+                        ],
+                        "type": "collection",
+                        "label": "Headers"
                     }
                 ]
             }
@@ -1885,7 +1877,7 @@
                                                         {
                                                             "a": "D",
                                                             "b": "{{2.`3`}}",
-                                                            "o": "text:equal"
+                                                            "o": "text:contain"
                                                         }
                                                     ]
                                                 ],
@@ -1902,13 +1894,22 @@
                                                     "x": 2752,
                                                     "y": -182
                                                 },
+                                                "setupValidation": {
+                                                    "result": {
+                                                        "valid": true,
+                                                        "fields": []
+                                                    },
+                                                    "version": 1,
+                                                    "configuration": "27fe5e434a3f64e1"
+                                                },
                                                 "restore": {
                                                     "expect": {
                                                         "from": {
                                                             "label": "Select from My Drive"
                                                         },
                                                         "orderBy": {
-                                                            "mode": "chose"
+                                                            "mode": "chose",
+                                                            "label": "Empty"
                                                         },
                                                         "sheetId": {
                                                             "mode": "chose",
@@ -2115,7 +2116,7 @@
                                                     {
                                                         "name": "4",
                                                         "type": "text",
-                                                        "label": "Orden_Galeria (E)"
+                                                        "label": "(E)"
                                                     },
                                                     {
                                                         "name": "5",
@@ -2616,161 +2617,84 @@
                                             }
                                         },
                                         {
-                                            "id": 55,
-                                            "module": "gemini-ai:createACompletionGeminiPro",
+                                            "id": 103,
+                                            "module": "groq:chatCompletion",
                                             "version": 1,
                                             "parameters": {
-                                                "__IMTCONN__": 10202602
+                                                "__IMTCONN__": 11597276
                                             },
+                                            "filter": null,
                                             "mapper": {
-                                                "model": "gemini-2.5-flash-lite",
-                                                "contents": [
+                                                "model": "openai/gpt-oss-120b",
+                                                "messages": [
+                                                    {
+                                                        "role": "system",
+                                                        "content": "Eres el Community Manager experto de NOVAELA, una marca de indumentaria femenina. Tu tono es cercano, persuasivo y enfocado en resaltar la calidad, el calce y los detalles. Usás emojis estratégicos, pero sin exagerar. Jamás usas comillas en tus respuestas.\n"
+                                                    },
                                                     {
                                                         "role": "user",
-                                                        "parts": [
-                                                            {
-                                                                "text": "Eres el Community Manager experto de NOVAELA, una marca de indumentaria femenina. Tu tono es cercano, persuasivo y enfocado en resaltar la calidad, el calce y los detalles. Usás emojis estratégicos, pero sin exagerar. Jamás usas comillas en tus respuestas.",
-                                                                "type": "text"
-                                                            }
-                                                        ]
+                                                        "content": "Actúa como un experto en copywriting para Instagram. Redacta el pie de foto para este artículo:\nProducto: {{56.`1`}}\nUnidades disponibles: {{56.`2`}}\n\nContexto visual:\nLa imagen principal de esta publicación es de tipo: {{57.`2`}}\nEl tipo de publicacion es: {{2.`2`}}\n\nInstrucciones de redacción:\n\nSi el tipo de imagen es MODELO (MOD): Escribe un texto aspiracional, enfocado en el estilo de vida, la actitud y cómo luce la prenda en uso.\n\nSi el tipo de imagen es PRODUCTO (PROD): Enfócate estrictamente en describir la calidad de los materiales, la textura, las terminaciones y el diseño de la prenda.\nSi el tipo de imagen es BRANDED: Enfócate estrictamente en describir la EMPRESA, busca ser cercano con el publico y hacer que se sientan atraidos.\n\nSi el stock es menor a 5, incluye un fuerte llamado a la acción generando sentido de urgencia por escasez.\n\nCierre con el link de la tienda (https://novaelaintimates.mitiendanube.com) ylos hashtags fijos: #NOVAELA #ModaFemenina #EstiloNOVAELA "
                                                     }
                                                 ],
-                                                "generationConfig": {
-                                                    "imageConfig": {},
-                                                    "thinkingConfig": {},
-                                                    "responseModalities": [
-                                                        "text"
-                                                    ]
-                                                },
-                                                "system_instruction": {
-                                                    "parts": [
-                                                        {
-                                                            "text": "Actúa como un experto en copywriting para Instagram. Redacta el pie de foto para este artículo:\nProducto: {{56.`1`}}\nUnidades disponibles: {{56.`2`}}\n\nContexto visual:\nLa imagen principal de esta publicación es de tipo: {{57.`2`}}\nEl tipo de publicacion es: {{2.`2`}}\n\nInstrucciones de redacción:\n\nSi el tipo de imagen es MODELO (MOD): Escribe un texto aspiracional, enfocado en el estilo de vida, la actitud y cómo luce la prenda en uso.\n\nSi el tipo de imagen es PRODUCTO (PROD): Enfócate estrictamente en describir la calidad de los materiales, la textura, las terminaciones y el diseño de la prenda.\nSi el tipo de imagen es BRANDED: Enfócate estrictamente en describir la EMPRESA, busca ser cercano con el publico y hacer que se sientan atraidos.\n\nSi el stock es menor a 5, incluye un fuerte llamado a la acción generando sentido de urgencia por escasez.\n\nCierre con el link de la tienda (https://novaelaintimates.mitiendanube.com) ylos hashtags fijos: #NOVAELA #ModaFemenina #EstiloNOVAELA "
-                                                        }
-                                                    ]
-                                                },
-                                                "google_search_context": true
+                                                "max_tokens": "1500",
+                                                "temperature": "0.7",
+                                                "response_format": "text"
                                             },
                                             "metadata": {
                                                 "designer": {
-                                                    "x": 3014,
-                                                    "y": -181
+                                                    "x": 3078,
+                                                    "y": -216
+                                                },
+                                                "setupValidation": {
+                                                    "result": {
+                                                        "valid": true,
+                                                        "fields": []
+                                                    },
+                                                    "version": 1,
+                                                    "configuration": "cb963bc85e389948"
                                                 },
                                                 "restore": {
                                                     "expect": {
                                                         "model": {
                                                             "mode": "chose",
-                                                            "label": "Gemini 2.5 Flash-LiteDiscontinuation date: October 16, 2026"
+                                                            "label": "openai/gpt-oss-120b"
                                                         },
-                                                        "contents": {
+                                                        "messages": {
                                                             "mode": "chose",
                                                             "items": [
                                                                 {
                                                                     "role": {
                                                                         "mode": "chose",
-                                                                        "label": "User"
-                                                                    },
-                                                                    "parts": {
+                                                                        "label": "System"
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "role": {
                                                                         "mode": "chose",
-                                                                        "items": [
-                                                                            {
-                                                                                "type": {
-                                                                                    "mode": "chose",
-                                                                                    "label": "Text"
-                                                                                }
-                                                                            }
-                                                                        ]
+                                                                        "label": "User"
                                                                     }
                                                                 }
                                                             ]
                                                         },
-                                                        "serviceTier": {
+                                                        "response_format": {
                                                             "mode": "chose",
-                                                            "label": "Empty"
-                                                        },
-                                                        "url_context": {
-                                                            "mode": "chose"
-                                                        },
-                                                        "code_execution": {
-                                                            "mode": "chose"
-                                                        },
-                                                        "safetySettings": {
-                                                            "mode": "chose"
-                                                        },
-                                                        "generationConfig": {
-                                                            "nested": {
-                                                                "imageConfig": {
-                                                                    "nested": {
-                                                                        "imageSize": {
-                                                                            "mode": "chose",
-                                                                            "label": "Empty"
-                                                                        }
-                                                                    }
-                                                                },
-                                                                "stopSequences": {
-                                                                    "mode": "chose"
-                                                                },
-                                                                "thinkingConfig": {
-                                                                    "nested": {
-                                                                        "thinking_level": {
-                                                                            "mode": "chose",
-                                                                            "label": "Empty"
-                                                                        },
-                                                                        "include_thoughts": {
-                                                                            "mode": "chose"
-                                                                        }
-                                                                    }
-                                                                },
-                                                                "mediaResolution": {
-                                                                    "mode": "chose",
-                                                                    "label": "Empty"
-                                                                },
-                                                                "responseMimeType": {
-                                                                    "mode": "chose",
-                                                                    "label": "Empty"
-                                                                },
-                                                                "responseModalities": {
-                                                                    "mode": "chose"
-                                                                }
-                                                            }
-                                                        },
-                                                        "system_instruction": {
-                                                            "nested": {
-                                                                "parts": {
-                                                                    "mode": "chose",
-                                                                    "items": [
-                                                                        null
-                                                                    ]
-                                                                }
-                                                            }
-                                                        },
-                                                        "google_maps_context": {
-                                                            "mode": "chose"
-                                                        },
-                                                        "google_search_context": {
-                                                            "mode": "chose"
-                                                        },
-                                                        "file_search_store_context": {
-                                                            "mode": "chose"
-                                                        },
-                                                        "function_declarations_context": {
-                                                            "mode": "chose"
+                                                            "label": "Text"
                                                         }
                                                     },
                                                     "parameters": {
                                                         "__IMTCONN__": {
                                                             "data": {
                                                                 "scoped": "true",
-                                                                "connection": "gemini-ai-q9zyjp"
+                                                                "connection": "groq"
                                                             },
-                                                            "label": "Nico.Gonzalez's Gemini AI connection"
+                                                            "label": "Nico.Gonzalez's Groq connection"
                                                         }
                                                     }
                                                 },
                                                 "parameters": [
                                                     {
                                                         "name": "__IMTCONN__",
-                                                        "type": "account:gemini-ai-q9zyjp",
+                                                        "type": "account:groq",
                                                         "label": "Connection",
                                                         "required": true
                                                     }
@@ -2779,11 +2703,11 @@
                                                     {
                                                         "name": "model",
                                                         "type": "select",
-                                                        "label": "AI Model",
+                                                        "label": "Model",
                                                         "required": true
                                                     },
                                                     {
-                                                        "name": "contents",
+                                                        "name": "messages",
                                                         "spec": [
                                                             {
                                                                 "name": "role",
@@ -2791,140 +2715,23 @@
                                                                 "label": "Role",
                                                                 "options": [
                                                                     {
+                                                                        "label": "System",
+                                                                        "value": "system"
+                                                                    },
+                                                                    {
                                                                         "label": "User",
                                                                         "value": "user"
                                                                     },
                                                                     {
-                                                                        "label": "Model",
-                                                                        "value": "model"
+                                                                        "label": "Assistant",
+                                                                        "value": "assistant"
                                                                     }
-                                                                ],
-                                                                "required": true
+                                                                ]
                                                             },
                                                             {
-                                                                "name": "parts",
-                                                                "spec": [
-                                                                    {
-                                                                        "name": "type",
-                                                                        "type": "select",
-                                                                        "label": "Message Type",
-                                                                        "options": [
-                                                                            {
-                                                                                "label": "Text",
-                                                                                "value": "text",
-                                                                                "nested": [
-                                                                                    {
-                                                                                        "name": "text",
-                                                                                        "type": "text",
-                                                                                        "label": "Text",
-                                                                                        "required": true
-                                                                                    }
-                                                                                ]
-                                                                            },
-                                                                            {
-                                                                                "label": "File",
-                                                                                "value": "file",
-                                                                                "nested": [
-                                                                                    {
-                                                                                        "name": "file_data",
-                                                                                        "spec": [
-                                                                                            {
-                                                                                                "name": "mime_type",
-                                                                                                "type": "text",
-                                                                                                "label": "Mime Type",
-                                                                                                "required": true
-                                                                                            },
-                                                                                            {
-                                                                                                "help": "You can use public or signed URLs as input by using the URLs.",
-                                                                                                "name": "file_uri",
-                                                                                                "type": "text",
-                                                                                                "label": "File URI",
-                                                                                                "required": true
-                                                                                            }
-                                                                                        ],
-                                                                                        "type": "collection",
-                                                                                        "label": "File Data",
-                                                                                        "required": true
-                                                                                    }
-                                                                                ]
-                                                                            },
-                                                                            {
-                                                                                "label": "Function Call",
-                                                                                "value": "functionCall",
-                                                                                "nested": [
-                                                                                    {
-                                                                                        "name": "functionCall",
-                                                                                        "spec": [
-                                                                                            {
-                                                                                                "help": "The name of the function to call.",
-                                                                                                "name": "name",
-                                                                                                "type": "text",
-                                                                                                "label": "Name",
-                                                                                                "required": true,
-                                                                                                "validate": {
-                                                                                                    "max": 64
-                                                                                                }
-                                                                                            },
-                                                                                            {
-                                                                                                "help": "The function parameters and values in JSON object format.",
-                                                                                                "name": "args",
-                                                                                                "type": "json",
-                                                                                                "label": "Arguments"
-                                                                                            },
-                                                                                            {
-                                                                                                "help": "The unique ID of the function call.",
-                                                                                                "name": "id",
-                                                                                                "type": "text",
-                                                                                                "label": "Function Call ID"
-                                                                                            }
-                                                                                        ],
-                                                                                        "type": "collection",
-                                                                                        "label": "Function Call"
-                                                                                    }
-                                                                                ]
-                                                                            },
-                                                                            {
-                                                                                "label": "Function Response",
-                                                                                "value": "functionResponse",
-                                                                                "nested": [
-                                                                                    {
-                                                                                        "name": "functionResponse",
-                                                                                        "spec": [
-                                                                                            {
-                                                                                                "help": "The name of the function to call.",
-                                                                                                "name": "name",
-                                                                                                "type": "text",
-                                                                                                "label": "Name",
-                                                                                                "required": true,
-                                                                                                "validate": {
-                                                                                                    "max": 64
-                                                                                                }
-                                                                                            },
-                                                                                            {
-                                                                                                "help": "The function response in JSON object format.",
-                                                                                                "name": "response",
-                                                                                                "type": "json",
-                                                                                                "label": "Response",
-                                                                                                "required": true
-                                                                                            }
-                                                                                        ],
-                                                                                        "type": "collection",
-                                                                                        "label": "Function Response"
-                                                                                    }
-                                                                                ]
-                                                                            }
-                                                                        ],
-                                                                        "required": true
-                                                                    },
-                                                                    {
-                                                                        "name": "thoughtSignature",
-                                                                        "type": "text",
-                                                                        "label": "Thought Signature"
-                                                                    }
-                                                                ],
-                                                                "type": "array",
-                                                                "label": "Parts",
-                                                                "required": true
+                                                                "name": "content",
+                                                                "type": "text",
+                                                                "label": "Content"
                                                             }
                                                         ],
                                                         "type": "array",
@@ -2932,250 +2739,106 @@
                                                         "required": true
                                                     },
                                                     {
-                                                        "name": "system_instruction",
-                                                        "spec": [
-                                                            {
-                                                                "name": "parts",
-                                                                "spec": {
-                                                                    "name": "value",
-                                                                    "spec": [
-                                                                        {
-                                                                            "name": "text",
-                                                                            "type": "text",
-                                                                            "label": "Value"
-                                                                        }
-                                                                    ],
-                                                                    "type": "collection",
-                                                                    "label": "Prompt"
-                                                                },
-                                                                "type": "array",
-                                                                "label": "Prompts"
-                                                            }
-                                                        ],
-                                                        "type": "collection",
-                                                        "label": "System Instructions"
+                                                        "name": "max_tokens",
+                                                        "type": "number",
+                                                        "label": "Max tokens returned"
                                                     },
                                                     {
-                                                        "name": "safetySettings",
-                                                        "spec": [
-                                                            {
-                                                                "name": "category",
-                                                                "type": "select",
-                                                                "label": "Category",
-                                                                "options": [
-                                                                    {
-                                                                        "label": "Harassment content",
-                                                                        "value": "HARM_CATEGORY_HARASSMENT"
-                                                                    },
-                                                                    {
-                                                                        "label": "Hate speech and content",
-                                                                        "value": "HARM_CATEGORY_HATE_SPEECH"
-                                                                    },
-                                                                    {
-                                                                        "label": "Sexually explicit content.",
-                                                                        "value": "HARM_CATEGORY_SEXUALLY_EXPLICIT"
-                                                                    },
-                                                                    {
-                                                                        "label": "Dangerous content:",
-                                                                        "value": "HARM_CATEGORY_DANGEROUS_CONTENT"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "name": "threshold",
-                                                                "type": "select",
-                                                                "label": "Threshold",
-                                                                "options": [
-                                                                    {
-                                                                        "label": "Block low and above.",
-                                                                        "value": "BLOCK_LOW_AND_ABOVE"
-                                                                    },
-                                                                    {
-                                                                        "label": "Block medium and above.",
-                                                                        "value": "BLOCK_MEDIUM_AND_ABOVE"
-                                                                    },
-                                                                    {
-                                                                        "label": "Block only high.",
-                                                                        "value": "BLOCK_ONLY_HIGH"
-                                                                    },
-                                                                    {
-                                                                        "label": "Block none.",
-                                                                        "value": "BLOCK_NONE"
-                                                                    }
-                                                                ]
-                                                            }
-                                                        ],
-                                                        "type": "array",
-                                                        "label": "Safety Settings"
+                                                        "name": "temperature",
+                                                        "type": "number",
+                                                        "label": "Temperature"
                                                     },
                                                     {
-                                                        "name": "generationConfig",
-                                                        "spec": [
-                                                            {
-                                                                "name": "stopSequences",
-                                                                "spec": {
-                                                                    "name": "value",
-                                                                    "type": "text",
-                                                                    "label": "Stop Sequence"
-                                                                },
-                                                                "type": "array",
-                                                                "label": "Stop Sequences"
-                                                            },
-                                                            {
-                                                                "name": "responseModalities",
-                                                                "type": "select",
-                                                                "label": "Response Modalities",
-                                                                "multiple": true,
-                                                                "validate": {
-                                                                    "enum": [
-                                                                        "text",
-                                                                        "image"
-                                                                    ]
-                                                                }
-                                                            },
-                                                            {
-                                                                "name": "maxOutputTokens",
-                                                                "type": "number",
-                                                                "label": "Max Output Tokens"
-                                                            },
-                                                            {
-                                                                "name": "temperature",
-                                                                "type": "number",
-                                                                "label": "Temperature",
-                                                                "validate": {
-                                                                    "max": 1,
-                                                                    "min": 0
-                                                                }
-                                                            },
-                                                            {
-                                                                "name": "topP",
-                                                                "type": "number",
-                                                                "label": "Top P",
-                                                                "validate": {
-                                                                    "max": 1,
-                                                                    "min": 0
-                                                                }
-                                                            },
-                                                            {
-                                                                "name": "topK",
-                                                                "type": "number",
-                                                                "label": "Top K"
-                                                            },
-                                                            {
-                                                                "name": "thinkingConfig",
-                                                                "spec": [
-                                                                    {
-                                                                        "name": "thinkingBudget",
-                                                                        "type": "number",
-                                                                        "label": "Thinking Budget"
-                                                                    },
-                                                                    {
-                                                                        "name": "include_thoughts",
-                                                                        "type": "boolean",
-                                                                        "label": "Include Thoughts"
-                                                                    },
-                                                                    {
-                                                                        "name": "thinking_level",
-                                                                        "type": "select",
-                                                                        "label": "Thinking Level",
-                                                                        "validate": {
-                                                                            "enum": [
-                                                                                "low",
-                                                                                "high"
-                                                                            ]
-                                                                        }
-                                                                    }
-                                                                ],
-                                                                "type": "collection",
-                                                                "label": "Thinking Config"
-                                                            },
-                                                            {
-                                                                "name": "mediaResolution",
-                                                                "type": "select",
-                                                                "label": "Media Resolution",
-                                                                "validate": {
-                                                                    "enum": [
-                                                                        "media_resolution_low",
-                                                                        "media_resolution_medium",
-                                                                        "media_resolution_high"
-                                                                    ]
-                                                                }
-                                                            },
-                                                            {
-                                                                "name": "imageConfig",
-                                                                "spec": [
-                                                                    {
-                                                                        "name": "imageSize",
-                                                                        "type": "select",
-                                                                        "label": "Image Size",
-                                                                        "validate": {
-                                                                            "enum": [
-                                                                                "1K",
-                                                                                "2K",
-                                                                                "4K"
-                                                                            ]
-                                                                        }
-                                                                    }
-                                                                ],
-                                                                "type": "collection",
-                                                                "label": "Image Configuration"
-                                                            },
-                                                            {
-                                                                "name": "responseMimeType",
-                                                                "type": "select",
-                                                                "label": "Response Format"
-                                                            }
-                                                        ],
-                                                        "type": "collection",
-                                                        "label": "Generation configurations"
-                                                    },
-                                                    {
-                                                        "name": "tools",
-                                                        "type": "any",
-                                                        "label": "Tools"
-                                                    },
-                                                    {
-                                                        "name": "tool_config",
-                                                        "type": "any",
-                                                        "label": "Tool Config"
-                                                    },
-                                                    {
-                                                        "name": "function_declarations_context",
-                                                        "type": "boolean",
-                                                        "label": "Function Declarations Grounding"
-                                                    },
-                                                    {
-                                                        "name": "url_context",
-                                                        "type": "boolean",
-                                                        "label": "URL Context"
-                                                    },
-                                                    {
-                                                        "name": "google_search_context",
-                                                        "type": "boolean",
-                                                        "label": "Google Search Grounding"
-                                                    },
-                                                    {
-                                                        "name": "code_execution",
-                                                        "type": "boolean",
-                                                        "label": "Code Execution"
-                                                    },
-                                                    {
-                                                        "name": "google_maps_context",
-                                                        "type": "boolean",
-                                                        "label": "Google Maps Grounding"
-                                                    },
-                                                    {
-                                                        "name": "file_search_store_context",
-                                                        "type": "boolean",
-                                                        "label": "File Search Store Context"
-                                                    },
-                                                    {
-                                                        "name": "serviceTier",
+                                                        "name": "response_format",
                                                         "type": "select",
-                                                        "label": "Inference Service Tier"
+                                                        "label": "Response Format",
+                                                        "validate": {
+                                                            "enum": [
+                                                                "text",
+                                                                "json_object"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "top_p",
+                                                        "type": "number",
+                                                        "label": "Top P"
+                                                    },
+                                                    {
+                                                        "name": "frequency_penalty",
+                                                        "type": "number",
+                                                        "label": "Frequency Penalty"
+                                                    },
+                                                    {
+                                                        "name": "seed",
+                                                        "type": "number",
+                                                        "label": "Seed"
                                                     }
-                                                ]
-                                            }
+                                                ],
+                                                "advanced": true
+                                            },
+                                            "onerror": [
+                                                {
+                                                    "id": 113,
+                                                    "module": "builtin:Break",
+                                                    "version": 1,
+                                                    "parameters": {},
+                                                    "mapper": {
+                                                        "count": "3",
+                                                        "retry": true,
+                                                        "interval": "5"
+                                                    },
+                                                    "metadata": {
+                                                        "designer": {
+                                                            "x": 3354,
+                                                            "y": -47
+                                                        },
+                                                        "setupValidation": {
+                                                            "result": {
+                                                                "valid": true,
+                                                                "fields": []
+                                                            },
+                                                            "version": 1,
+                                                            "configuration": "16a9969966f1f851"
+                                                        },
+                                                        "restore": {
+                                                            "expect": {
+                                                                "retry": {
+                                                                    "mode": "chose"
+                                                                }
+                                                            }
+                                                        },
+                                                        "expect": [
+                                                            {
+                                                                "name": "retry",
+                                                                "type": "boolean",
+                                                                "label": "Retry automatically",
+                                                                "required": true
+                                                            },
+                                                            {
+                                                                "name": "count",
+                                                                "type": "uinteger",
+                                                                "label": "Number of retries",
+                                                                "required": true,
+                                                                "validate": {
+                                                                    "max": 10000,
+                                                                    "min": 1
+                                                                }
+                                                            },
+                                                            {
+                                                                "name": "interval",
+                                                                "type": "uinteger",
+                                                                "label": "Minutes between retries",
+                                                                "required": true,
+                                                                "validate": {
+                                                                    "max": 44640,
+                                                                    "min": 1
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
                                         },
                                         {
                                             "id": 59,
@@ -3184,8 +2847,8 @@
                                             "mapper": null,
                                             "metadata": {
                                                 "designer": {
-                                                    "x": 3219,
-                                                    "y": -210
+                                                    "x": 3378,
+                                                    "y": -366
                                                 }
                                             },
                                             "branches": [
@@ -3202,14 +2865,22 @@
                                                                 "__IMTCONN__": 10261512
                                                             },
                                                             "mapper": {
-                                                                "caption": "{{55.result}}",
+                                                                "caption": "{{103.result}}",
                                                                 "accountId": "17841439199985986",
                                                                 "image_url": "{{2.`3`}}"
                                                             },
                                                             "metadata": {
                                                                 "designer": {
-                                                                    "x": 3505,
-                                                                    "y": -434
+                                                                    "x": 3854,
+                                                                    "y": -424
+                                                                },
+                                                                "setupValidation": {
+                                                                    "version": 1,
+                                                                    "configuration": "217a1d132724e35f",
+                                                                    "result": {
+                                                                        "valid": true,
+                                                                        "fields": []
+                                                                    }
                                                                 },
                                                                 "restore": {
                                                                     "expect": {
@@ -3310,27 +2981,48 @@
                                                             },
                                                             "mapper": {
                                                                 "mode": "map",
-                                                                "values": {
-                                                                    "4": "Enviado"
-                                                                },
+                                                                "valueInputOption": "USER_ENTERED",
+                                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                                 "sheetId": "Cola_Publicacion",
                                                                 "rowNumber": "{{2.`__ROW_NUMBER__`}}",
-                                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                                 "tableFirstRow": "A1:Z1",
-                                                                "valueInputOption": "USER_ENTERED"
+                                                                "values": {
+                                                                    "4": "Enviado",
+                                                                    "8": "{{formatDate(now; \"DD/MM/YYYY\")}}"
+                                                                }
                                                             },
                                                             "metadata": {
                                                                 "designer": {
-                                                                    "x": 3805,
+                                                                    "x": 4405,
                                                                     "y": -434
                                                                 },
+                                                                "setupValidation": {
+                                                                    "version": 1,
+                                                                    "configuration": "848f3a70cb5de4b8",
+                                                                    "result": {
+                                                                        "valid": true,
+                                                                        "fields": []
+                                                                    }
+                                                                },
                                                                 "restore": {
+                                                                    "parameters": {
+                                                                        "__IMTCONN__": {
+                                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)",
+                                                                            "data": {
+                                                                                "scoped": "true",
+                                                                                "connection": "google"
+                                                                            }
+                                                                        }
+                                                                    },
                                                                     "expect": {
                                                                         "mode": {
                                                                             "label": "Enter manually"
                                                                         },
+                                                                        "valueInputOption": {
+                                                                            "mode": "chose",
+                                                                            "label": "User entered"
+                                                                        },
                                                                         "tableFirstRow": {
-                                                                            "label": "A-Z",
                                                                             "nested": [
                                                                                 {
                                                                                     "name": "values",
@@ -3469,20 +3161,8 @@
                                                                                     "type": "collection",
                                                                                     "label": "Values in columns"
                                                                                 }
-                                                                            ]
-                                                                        },
-                                                                        "valueInputOption": {
-                                                                            "mode": "chose",
-                                                                            "label": "User entered"
-                                                                        }
-                                                                    },
-                                                                    "parameters": {
-                                                                        "__IMTCONN__": {
-                                                                            "data": {
-                                                                                "scoped": "true",
-                                                                                "connection": "google"
-                                                                            },
-                                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)"
+                                                                            ],
+                                                                            "label": "A-Z"
                                                                         }
                                                                     }
                                                                 },
@@ -3556,6 +3236,8 @@
                                                                     },
                                                                     {
                                                                         "name": "values",
+                                                                        "type": "collection",
+                                                                        "label": "Values in columns",
                                                                         "spec": [
                                                                             {
                                                                                 "name": "0",
@@ -3687,9 +3369,7 @@
                                                                                 "type": "text",
                                                                                 "label": "Z"
                                                                             }
-                                                                        ],
-                                                                        "type": "collection",
-                                                                        "label": "Values in columns"
+                                                                        ]
                                                                     }
                                                                 ]
                                                             }
@@ -3723,15 +3403,23 @@
                                                                 "__IMTCONN__": 10261512
                                                             },
                                                             "mapper": {
-                                                                "caption": "{{55.result}}",
+                                                                "caption": "{{103.result}}",
                                                                 "accountId": "17841439199985986",
                                                                 "video_url": "{{2.`3`}}",
                                                                 "share_to_feed": true
                                                             },
                                                             "metadata": {
                                                                 "designer": {
-                                                                    "x": 3667,
-                                                                    "y": -188
+                                                                    "x": 3920,
+                                                                    "y": -193
+                                                                },
+                                                                "setupValidation": {
+                                                                    "result": {
+                                                                        "valid": true,
+                                                                        "fields": []
+                                                                    },
+                                                                    "version": 1,
+                                                                    "configuration": "362823e48ecf36b2"
                                                                 },
                                                                 "restore": {
                                                                     "expect": {
@@ -3807,27 +3495,48 @@
                                                             },
                                                             "mapper": {
                                                                 "mode": "map",
-                                                                "values": {
-                                                                    "4": "Enviado"
-                                                                },
+                                                                "valueInputOption": "USER_ENTERED",
+                                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                                 "sheetId": "Cola_Publicacion",
                                                                 "rowNumber": "{{2.`__ROW_NUMBER__`}}",
-                                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                                 "tableFirstRow": "A1:Z1",
-                                                                "valueInputOption": "USER_ENTERED"
+                                                                "values": {
+                                                                    "4": "Enviado",
+                                                                    "8": "{{formatDate(now; \"DD/MM/YYYY\")}}"
+                                                                }
                                                             },
                                                             "metadata": {
                                                                 "designer": {
-                                                                    "x": 4003,
+                                                                    "x": 4603,
                                                                     "y": -193
                                                                 },
+                                                                "setupValidation": {
+                                                                    "version": 1,
+                                                                    "configuration": "848f3a70cb5de4b8",
+                                                                    "result": {
+                                                                        "valid": true,
+                                                                        "fields": []
+                                                                    }
+                                                                },
                                                                 "restore": {
+                                                                    "parameters": {
+                                                                        "__IMTCONN__": {
+                                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)",
+                                                                            "data": {
+                                                                                "scoped": "true",
+                                                                                "connection": "google"
+                                                                            }
+                                                                        }
+                                                                    },
                                                                     "expect": {
                                                                         "mode": {
                                                                             "label": "Enter manually"
                                                                         },
+                                                                        "valueInputOption": {
+                                                                            "mode": "chose",
+                                                                            "label": "User entered"
+                                                                        },
                                                                         "tableFirstRow": {
-                                                                            "label": "A-Z",
                                                                             "nested": [
                                                                                 {
                                                                                     "name": "values",
@@ -3966,20 +3675,8 @@
                                                                                     "type": "collection",
                                                                                     "label": "Values in columns"
                                                                                 }
-                                                                            ]
-                                                                        },
-                                                                        "valueInputOption": {
-                                                                            "mode": "chose",
-                                                                            "label": "User entered"
-                                                                        }
-                                                                    },
-                                                                    "parameters": {
-                                                                        "__IMTCONN__": {
-                                                                            "data": {
-                                                                                "scoped": "true",
-                                                                                "connection": "google"
-                                                                            },
-                                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)"
+                                                                            ],
+                                                                            "label": "A-Z"
                                                                         }
                                                                     }
                                                                 },
@@ -4053,6 +3750,8 @@
                                                                     },
                                                                     {
                                                                         "name": "values",
+                                                                        "type": "collection",
+                                                                        "label": "Values in columns",
                                                                         "spec": [
                                                                             {
                                                                                 "name": "0",
@@ -4184,9 +3883,7 @@
                                                                                 "type": "text",
                                                                                 "label": "Z"
                                                                             }
-                                                                        ],
-                                                                        "type": "collection",
-                                                                        "label": "Values in columns"
+                                                                        ]
                                                                     }
                                                                 ]
                                                             }
@@ -4226,7 +3923,7 @@
                                                             },
                                                             "metadata": {
                                                                 "designer": {
-                                                                    "x": 3347,
+                                                                    "x": 3947,
                                                                     "y": 111
                                                                 },
                                                                 "restore": {
@@ -4265,7 +3962,7 @@
                                                             },
                                                             "metadata": {
                                                                 "designer": {
-                                                                    "x": 3618,
+                                                                    "x": 4218,
                                                                     "y": 105
                                                                 },
                                                                 "restore": {
@@ -4361,13 +4058,21 @@
                                                             },
                                                             "mapper": {
                                                                 "files": "{{70.array}}",
-                                                                "caption": "{{55.result}}",
+                                                                "caption": "{{103.result}}",
                                                                 "accountId": "17841439199985986"
                                                             },
                                                             "metadata": {
                                                                 "designer": {
-                                                                    "x": 3918,
+                                                                    "x": 4518,
                                                                     "y": 97
+                                                                },
+                                                                "setupValidation": {
+                                                                    "result": {
+                                                                        "valid": true,
+                                                                        "fields": []
+                                                                    },
+                                                                    "version": 1,
+                                                                    "configuration": "dbdba28ab3d3a6cb"
                                                                 },
                                                                 "restore": {
                                                                     "expect": {
@@ -4519,27 +4224,48 @@
                                                             },
                                                             "mapper": {
                                                                 "mode": "map",
-                                                                "values": {
-                                                                    "4": "Enviado"
-                                                                },
+                                                                "valueInputOption": "USER_ENTERED",
+                                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                                 "sheetId": "Cola_Publicacion",
                                                                 "rowNumber": "{{2.`__ROW_NUMBER__`}}",
-                                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                                 "tableFirstRow": "A1:Z1",
-                                                                "valueInputOption": "USER_ENTERED"
+                                                                "values": {
+                                                                    "4": "Enviado",
+                                                                    "8": "{{formatDate(now; \"DD/MM/YYYY\")}}"
+                                                                }
                                                             },
                                                             "metadata": {
                                                                 "designer": {
-                                                                    "x": 4407,
+                                                                    "x": 5007,
                                                                     "y": 96
                                                                 },
+                                                                "setupValidation": {
+                                                                    "version": 1,
+                                                                    "configuration": "848f3a70cb5de4b8",
+                                                                    "result": {
+                                                                        "valid": true,
+                                                                        "fields": []
+                                                                    }
+                                                                },
                                                                 "restore": {
+                                                                    "parameters": {
+                                                                        "__IMTCONN__": {
+                                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)",
+                                                                            "data": {
+                                                                                "scoped": "true",
+                                                                                "connection": "google"
+                                                                            }
+                                                                        }
+                                                                    },
                                                                     "expect": {
                                                                         "mode": {
                                                                             "label": "Enter manually"
                                                                         },
+                                                                        "valueInputOption": {
+                                                                            "mode": "chose",
+                                                                            "label": "User entered"
+                                                                        },
                                                                         "tableFirstRow": {
-                                                                            "label": "A-Z",
                                                                             "nested": [
                                                                                 {
                                                                                     "name": "values",
@@ -4678,20 +4404,8 @@
                                                                                     "type": "collection",
                                                                                     "label": "Values in columns"
                                                                                 }
-                                                                            ]
-                                                                        },
-                                                                        "valueInputOption": {
-                                                                            "mode": "chose",
-                                                                            "label": "User entered"
-                                                                        }
-                                                                    },
-                                                                    "parameters": {
-                                                                        "__IMTCONN__": {
-                                                                            "data": {
-                                                                                "scoped": "true",
-                                                                                "connection": "google"
-                                                                            },
-                                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)"
+                                                                            ],
+                                                                            "label": "A-Z"
                                                                         }
                                                                     }
                                                                 },
@@ -4765,6 +4479,8 @@
                                                                     },
                                                                     {
                                                                         "name": "values",
+                                                                        "type": "collection",
+                                                                        "label": "Values in columns",
                                                                         "spec": [
                                                                             {
                                                                                 "name": "0",
@@ -4896,9 +4612,7 @@
                                                                                 "type": "text",
                                                                                 "label": "Z"
                                                                             }
-                                                                        ],
-                                                                        "type": "collection",
-                                                                        "label": "Values in columns"
+                                                                        ]
                                                                     }
                                                                 ]
                                                             }
@@ -5087,27 +4801,48 @@
                                             },
                                             "mapper": {
                                                 "mode": "map",
-                                                "values": {
-                                                    "4": "Enviado"
-                                                },
+                                                "valueInputOption": "USER_ENTERED",
+                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                 "sheetId": "Cola_Publicacion",
                                                 "rowNumber": "{{2.`__ROW_NUMBER__`}}",
-                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                 "tableFirstRow": "A1:Z1",
-                                                "valueInputOption": "USER_ENTERED"
+                                                "values": {
+                                                    "4": "Enviado",
+                                                    "8": "{{formatDate(now; \"DD/MM/YYYY\")}}"
+                                                }
                                             },
                                             "metadata": {
                                                 "designer": {
                                                     "x": 2747,
                                                     "y": 86
                                                 },
+                                                "setupValidation": {
+                                                    "version": 1,
+                                                    "configuration": "848f3a70cb5de4b8",
+                                                    "result": {
+                                                        "valid": true,
+                                                        "fields": []
+                                                    }
+                                                },
                                                 "restore": {
+                                                    "parameters": {
+                                                        "__IMTCONN__": {
+                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)",
+                                                            "data": {
+                                                                "scoped": "true",
+                                                                "connection": "google"
+                                                            }
+                                                        }
+                                                    },
                                                     "expect": {
                                                         "mode": {
                                                             "label": "Enter manually"
                                                         },
+                                                        "valueInputOption": {
+                                                            "mode": "chose",
+                                                            "label": "User entered"
+                                                        },
                                                         "tableFirstRow": {
-                                                            "label": "A-Z",
                                                             "nested": [
                                                                 {
                                                                     "name": "values",
@@ -5246,20 +4981,8 @@
                                                                     "type": "collection",
                                                                     "label": "Values in columns"
                                                                 }
-                                                            ]
-                                                        },
-                                                        "valueInputOption": {
-                                                            "mode": "chose",
-                                                            "label": "User entered"
-                                                        }
-                                                    },
-                                                    "parameters": {
-                                                        "__IMTCONN__": {
-                                                            "data": {
-                                                                "scoped": "true",
-                                                                "connection": "google"
-                                                            },
-                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)"
+                                                            ],
+                                                            "label": "A-Z"
                                                         }
                                                     }
                                                 },
@@ -5333,6 +5056,8 @@
                                                     },
                                                     {
                                                         "name": "values",
+                                                        "type": "collection",
+                                                        "label": "Values in columns",
                                                         "spec": [
                                                             {
                                                                 "name": "0",
@@ -5464,9 +5189,7 @@
                                                                 "type": "text",
                                                                 "label": "Z"
                                                             }
-                                                        ],
-                                                        "type": "collection",
-                                                        "label": "Values in columns"
+                                                        ]
                                                     }
                                                 ]
                                             }
@@ -5584,27 +5307,48 @@
                                             },
                                             "mapper": {
                                                 "mode": "map",
-                                                "values": {
-                                                    "4": "Enviado"
-                                                },
+                                                "valueInputOption": "USER_ENTERED",
+                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                 "sheetId": "Cola_Publicacion",
                                                 "rowNumber": "{{2.`__ROW_NUMBER__`}}",
-                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                 "tableFirstRow": "A1:Z1",
-                                                "valueInputOption": "USER_ENTERED"
+                                                "values": {
+                                                    "4": "Enviado",
+                                                    "8": "{{formatDate(now; \"DD/MM/YYYY\")}}"
+                                                }
                                             },
                                             "metadata": {
                                                 "designer": {
                                                     "x": 2762,
                                                     "y": 331
                                                 },
+                                                "setupValidation": {
+                                                    "version": 1,
+                                                    "configuration": "848f3a70cb5de4b8",
+                                                    "result": {
+                                                        "valid": true,
+                                                        "fields": []
+                                                    }
+                                                },
                                                 "restore": {
+                                                    "parameters": {
+                                                        "__IMTCONN__": {
+                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)",
+                                                            "data": {
+                                                                "scoped": "true",
+                                                                "connection": "google"
+                                                            }
+                                                        }
+                                                    },
                                                     "expect": {
                                                         "mode": {
                                                             "label": "Enter manually"
                                                         },
+                                                        "valueInputOption": {
+                                                            "mode": "chose",
+                                                            "label": "User entered"
+                                                        },
                                                         "tableFirstRow": {
-                                                            "label": "A-Z",
                                                             "nested": [
                                                                 {
                                                                     "name": "values",
@@ -5743,20 +5487,8 @@
                                                                     "type": "collection",
                                                                     "label": "Values in columns"
                                                                 }
-                                                            ]
-                                                        },
-                                                        "valueInputOption": {
-                                                            "mode": "chose",
-                                                            "label": "User entered"
-                                                        }
-                                                    },
-                                                    "parameters": {
-                                                        "__IMTCONN__": {
-                                                            "data": {
-                                                                "scoped": "true",
-                                                                "connection": "google"
-                                                            },
-                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)"
+                                                            ],
+                                                            "label": "A-Z"
                                                         }
                                                     }
                                                 },
@@ -5830,6 +5562,8 @@
                                                     },
                                                     {
                                                         "name": "values",
+                                                        "type": "collection",
+                                                        "label": "Values in columns",
                                                         "spec": [
                                                             {
                                                                 "name": "0",
@@ -5961,9 +5695,7 @@
                                                                 "type": "text",
                                                                 "label": "Z"
                                                             }
-                                                        ],
-                                                        "type": "collection",
-                                                        "label": "Values in columns"
+                                                        ]
                                                     }
                                                 ]
                                             }
@@ -6293,27 +6025,48 @@
                                             },
                                             "mapper": {
                                                 "mode": "map",
-                                                "values": {
-                                                    "4": "Enviado"
-                                                },
+                                                "valueInputOption": "USER_ENTERED",
+                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                 "sheetId": "Cola_Publicacion",
                                                 "rowNumber": "{{2.`__ROW_NUMBER__`}}",
-                                                "spreadsheetId": "1V7GOv_C4xi5I6ff1u_LDebOjgM5muSHGN30kae-W6Oc",
                                                 "tableFirstRow": "A1:Z1",
-                                                "valueInputOption": "USER_ENTERED"
+                                                "values": {
+                                                    "4": "Enviado",
+                                                    "8": "{{formatDate(now; \"DD/MM/YYYY\")}}"
+                                                }
                                             },
                                             "metadata": {
                                                 "designer": {
                                                     "x": 3256,
                                                     "y": 604
                                                 },
+                                                "setupValidation": {
+                                                    "version": 1,
+                                                    "configuration": "848f3a70cb5de4b8",
+                                                    "result": {
+                                                        "valid": true,
+                                                        "fields": []
+                                                    }
+                                                },
                                                 "restore": {
+                                                    "parameters": {
+                                                        "__IMTCONN__": {
+                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)",
+                                                            "data": {
+                                                                "scoped": "true",
+                                                                "connection": "google"
+                                                            }
+                                                        }
+                                                    },
                                                     "expect": {
                                                         "mode": {
                                                             "label": "Enter manually"
                                                         },
+                                                        "valueInputOption": {
+                                                            "mode": "chose",
+                                                            "label": "User entered"
+                                                        },
                                                         "tableFirstRow": {
-                                                            "label": "A-Z",
                                                             "nested": [
                                                                 {
                                                                     "name": "values",
@@ -6452,20 +6205,8 @@
                                                                     "type": "collection",
                                                                     "label": "Values in columns"
                                                                 }
-                                                            ]
-                                                        },
-                                                        "valueInputOption": {
-                                                            "mode": "chose",
-                                                            "label": "User entered"
-                                                        }
-                                                    },
-                                                    "parameters": {
-                                                        "__IMTCONN__": {
-                                                            "data": {
-                                                                "scoped": "true",
-                                                                "connection": "google"
-                                                            },
-                                                            "label": "Nico.Gonzalez's Google connection (gonzaleztunu2@gmail.com)"
+                                                            ],
+                                                            "label": "A-Z"
                                                         }
                                                     }
                                                 },
@@ -6539,6 +6280,8 @@
                                                     },
                                                     {
                                                         "name": "values",
+                                                        "type": "collection",
+                                                        "label": "Values in columns",
                                                         "spec": [
                                                             {
                                                                 "name": "0",
@@ -6670,9 +6413,7 @@
                                                                 "type": "text",
                                                                 "label": "Z"
                                                             }
-                                                        ],
-                                                        "type": "collection",
-                                                        "label": "Values in columns"
+                                                        ]
                                                     }
                                                 ]
                                             }
@@ -6723,7 +6464,7 @@
             "slots": null,
             "confidential": false,
             "dataloss": false,
-            "dlq": false,
+            "dlq": true,
             "freshVariables": false
         },
         "designer": {
