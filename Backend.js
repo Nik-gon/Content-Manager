@@ -39,6 +39,7 @@ function doGet(e) {
 
 // Entrada para Make (HTTP POST). Campos: action=reciclarCola, key=<MAKE_SECRET>, idSheet=<ID del Sheet del cliente>.
 // Acepta formulario (x-www-form-urlencoded) o JSON en el cuerpo.
+/**
 function doPost(e) {
   var p = (e && e.parameter) ? e.parameter : {};
   if (!p.action && e && e.postData && e.postData.contents) {
@@ -46,6 +47,57 @@ function doPost(e) {
   }
   if (String(p.action || '') === 'reciclarCola') return procesarReciclado_(p);
   return jsonOut_({ estado: 'ERROR', mensaje: 'Solicitud no válida.' });
+}
+ */
+var FRONT_PUBLICAS = ['obtenerConfiguracionGlobal', 'loginUsuario', 'registrarUsuario'];
+var FRONT_CON_SESION = ['getInitialData', 'logoutUsuario', 'cambiarPassword', 'obtenerPerfil',
+  'guardarPerfil', 'guardarConfiguracion', 'guardarModoDistribucion', 'guardarModoIterativo',
+  'crearProductoConImagenes', 'actualizarProducto', 'eliminarProducto', 'guardarNuevoMedio',
+  'eliminarMedio', 'enviarAColaPublicacion', 'eliminarPostCola', 'actualizarPostCola'];
+var FRONT_FUNCIONES = {
+     obtenerConfiguracionGlobal: obtenerConfiguracionGlobal, loginUsuario: loginUsuario,
+     registrarUsuario: registrarUsuario, getInitialData: getInitialData,
+     logoutUsuario: logoutUsuario, cambiarPassword: cambiarPassword,
+     obtenerPerfil: obtenerPerfil, guardarPerfil: guardarPerfil,
+     guardarConfiguracion: guardarConfiguracion, guardarModoDistribucion: guardarModoDistribucion,
+     guardarModoIterativo: guardarModoIterativo, crearProductoConImagenes: crearProductoConImagenes,
+     actualizarProducto: actualizarProducto, eliminarProducto: eliminarProducto,
+     guardarNuevoMedio: guardarNuevoMedio, eliminarMedio: eliminarMedio,
+     enviarAColaPublicacion: enviarAColaPublicacion, eliminarPostCola: eliminarPostCola,
+     actualizarPostCola: actualizarPostCola
+   };
+
+function doPost(e) {
+  var p = parseBody_(e);
+  if (String(p.action) === 'reciclarCola') return procesarReciclado_(p);   // Make sigue igual
+  return procesarApiFront_(p);
+}
+
+function procesarApiFront_(p) {
+  var secreto = PropertiesService.getScriptProperties().getProperty('FRONTEND_API_SECRET');
+  if (!secreto || !igualesConstante_(String(p.serviceKey || ''), secreto)) {
+    Utilities.sleep(1500);
+    auditar_('api_no_autorizada', '');
+    return jsonOut_({ ok: false, error: 'No autorizado.' });
+  }
+  var accion = String(p.action || '');
+  if (FRONT_PUBLICAS.indexOf(accion) === -1 && FRONT_CON_SESION.indexOf(accion) === -1) {
+    return jsonOut_({ ok: false, error: 'Acción no válida.' });
+  }
+  try {
+    var data = FRONT_FUNCIONES[accion].apply(null, Array.isArray(p.args) ? p.args : []);
+    return jsonOut_({ ok: true, data: data });
+  } catch (err) {
+    return jsonOut_({ ok: false, error: err.message, code: /^Sesión/.test(err.message) ? 'SESSION' : 'ERROR' });
+  }
+}
+
+function parseBody_(e) {
+  var p = (e && e.parameter) ? e.parameter : {};
+  if (!p.action && e && e.postData && e.postData.contents) {
+    try { p = JSON.parse(e.postData.contents) || {}; } catch (err) { p = {}; }
+  }
+  return p;
 }
 
 function jsonOut_(obj) {
@@ -1030,3 +1082,4 @@ function revisarYReiniciarColaInterno_(ss) {
     return { estado: 'IGNORADO', mensaje: 'Cola vacía pero el reciclado iterativo está apagado (0).' };
   });
 }
+
